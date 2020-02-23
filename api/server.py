@@ -1,7 +1,8 @@
 """REST portal for CAM-KP RDF database."""
+import json
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 import httpx
 from starlette.responses import Response
 
@@ -16,9 +17,12 @@ app = FastAPI(
     version='1.0.0',
 )
 
+with open('examples/has_participant.json') as f:
+    example = json.load(f)
+
 
 @app.post('/transpile', response_model=str, tags=['query'])
-async def transpile_query(query: Query) -> str:
+async def transpile_query(query: Query = Body(..., example=example)) -> str:
     """Transpile Reasoner Standard query to SPARQL."""
     message = query.message.dict()
     qgraph = message['query_graph']
@@ -28,7 +32,7 @@ async def transpile_query(query: Query) -> str:
 
 
 @app.post('/query', response_model=Message, tags=['query'])
-async def answer_query(query: Query) -> Message:
+async def answer_query(query: Query = Body(..., example=example)) -> Message:
     """Answer biomedical question."""
     message = query.message.dict()
     sparql_query = build_query(message['query_graph'])
