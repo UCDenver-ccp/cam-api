@@ -9,7 +9,7 @@
         },
         {
           "id": "n1",
-          "type": "molecular_activity"
+          "type": "biological_process"
         }
       ],
       "edges": [
