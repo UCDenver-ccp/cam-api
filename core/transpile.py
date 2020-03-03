@@ -1,32 +1,18 @@
 """Build a SPARQL Query."""
-import re
+from collections import defaultdict
 
-
-def snake_to_pascal(string):
-    """Convert snake-case string to pascal-case."""
-    return string[0].upper() + re.sub('_([a-z])', lambda match: match.group(1).upper(), string[1:])
-
-
-PREFIXES = {
-    'rdf': '<http://www.w3.org/1999/02/22-rdf-syntax-ns#>',
-    'rdfs': '<http://www.w3.org/2000/01/rdf-schema#>',
-    'go': '<http://www.geneontology.org/formats/oboInOwl#>',
-    'blml': '<https://w3id.org/biolink/biolinkml/meta/>',
-    'bl': '<https://w3id.org/biolink/vocab/>',
-    'MONDO': '<http://purl.obolibrary.org/obo/MONDO_>',
-    'SO': '<http://purl.obolibrary.org/obo/SO_>',
-    'RO': '<http://purl.obolibrary.org/obo/RO_>',
-    'obo': '<http://purl.obolibrary.org/obo/>',
-    'NCBIGENE': '<http://identifiers.org/ncbigene:>',
-}
+from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix
 
 
 def build_query(qgraph):
     """Build a SPARQL Query string."""
     query = ''
     for key, value in PREFIXES.items():
-        query += f'PREFIX {key}: {value}\n'
-    query += '\nSELECT DISTINCT * WHERE {\n'
+        query += f'PREFIX {key}: <{value}>\n'
+    ids = [f"?{node['id']}_type" for node in qgraph['nodes']]
+    ids += [f"?{edge['id']}" for edge in qgraph['edges']]
+    var_string = ' '.join(ids)
+    query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
     for node in qgraph["nodes"]:
         if node['curie']:
             query += f"  ?{node['id']} rdf:type {node['curie']} .\n"
@@ -36,7 +22,7 @@ def build_query(qgraph):
             query += f"  bl:{pascal_node_type} blml:class_uri ?{node['type']} .\n"
             query += f"  ?{node['id']} rdf:type ?{node['type']} .\n"
 
-        # query += f"{node_id_to_uri[node_id]} rdfs:label ?{node_id}label .\n"
+        query += f"  ?{node['id']} sesame:directType ?{node['id']}_type .\n"
 
     for edge in qgraph['edges']:
         query += f"  bl:{edge['type']} blml:slot_uri ?{edge['id']} .\n"
@@ -46,43 +32,104 @@ def build_query(qgraph):
     return query
 
 
+def get_details(kgraph):
+    """Get node and edge details."""
+    node_map = {
+        f'n{idx:02d}': node['id']
+        for idx, node in enumerate(kgraph['nodes'].values())
+    }
+    edge_map = {
+        edge['id']: edge['type']
+        for idx, edge in enumerate(kgraph['edges'].values())
+    }
+    query = ''
+    for key, value in PREFIXES.items():
+        query += f'PREFIX {key}: <{value}>\n'
+    var_strings = [f"?{qid}_blclass" for qid in node_map]
+    var_strings += [f"?{qid}_label" for qid in node_map]
+    var_strings += [f"?{qid}_blslot" for qid in edge_map]
+    var_string = ' '.join(var_strings)
+    query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
+    for qid, kid in node_map.items():
+        if kid.startswith('http'):
+            kid = f'<{kid}>'
+        query += f"  OPTIONAL {{\n"
+        query += f"    {kid} rdfs:subClassOf ?{qid}_class .\n"
+        query += f"    ?{qid}_class ^blml:class_uri/blml:isa* ?{qid}_blclass .\n"
+        query += f"    OPTIONAL {{{kid} rdfs:label ?{qid}_label .}} .\n"
+        query += f"  }} .\n"
+    for qid, kid in edge_map.items():
+        if kid.startswith('http'):
+            kid = f'<{kid}>'
+        query += f"  ?{qid}_blslot blml:slot_uri {kid} .\n"
+
+    query += "}"
+    return query, node_map, edge_map
+
+
 def parse_response(response, qgraph):
     """Parse the query response."""
     results = []
     kgraph = {
         "nodes": dict(),
-        "edges": []
+        "edges": dict(),
     }
-    edge_id = 0
+    edge_idx = 0
     for row in response:
         result = {
             "node_bindings": [],
             "edge_bindings": []
         }
-        for qg_node in qgraph['nodes']:
-            node_id = row[qg_node['id']]['value']
+        for qnode in qgraph['nodes']:
+            node_id = apply_prefix(row[f"{qnode['id']}_type"]['value'])
             kgraph['nodes'][node_id] = {
                 'id': node_id,
-                'type': row[qg_node['type']]['value'],
             }
             result['node_bindings'].append({
-                'qg_id': qg_node['id'],
+                'qg_id': qnode['id'],
                 'kg_id': node_id,
             })
         for qedge in qgraph['edges']:
-            kgraph['edges'].append({
+            edge_id = f'e{edge_idx:04d}'
+            edge_type = apply_prefix(row[f"{qedge['id']}"]['value'])
+            # edge_type = row[f"{qedge['id']}_label"]['value']
+            source_id = apply_prefix(row[f"{qedge['source_id']}_type"]['value'])
+            target_id = apply_prefix(row[f"{qedge['target_id']}_type"]['value'])
+            kgraph['edges'][edge_id] = {
                 'id': edge_id,
-                'type': row[qedge['id']]['value'],
-                'source_id': row[qedge['source_id']]['value'],
-                'target_id': row[qedge['target_id']]['value'],
-            })
+                'type': edge_type,
+                'source_id': source_id,
+                'target_id': target_id,
+            }
             result['edge_bindings'].append({
                 'qg_id': qedge['id'],
                 'kg_id': edge_id,
             })
-            edge_id += 1
+            edge_idx += 1
         results.append(result)
 
-    kgraph['nodes'] = list(kgraph['nodes'].values())
-
     return kgraph, results
+
+
+def parse_kgraph(response, node_map, edge_map, kgraph):
+    """Parse the query response."""
+    nodes = kgraph['nodes']
+    for qid, kid in node_map.items():
+        nodes[kid]['type'] = set()
+        for row in response:
+            if f"{qid}_label" in row:
+                nodes[kid]['name'] = row[f"{qid}_label"]['value']
+            if f"{qid}_blclass" in row:
+                node_type = pascal_to_snake(apply_prefix(row[f"{qid}_blclass"]['value']).split(':', 1)[1])
+                nodes[kid]['type'].add(node_type)
+        nodes[kid]['type'] = list(nodes[kid]['type'])
+    kgraph['nodes'] = list(nodes.values())
+
+    edges = kgraph['edges']
+    for qid, kid in edge_map.items():
+        for row in response:
+            edge_type = node_type = apply_prefix(row[f"{qid}_blslot"]['value']).split(':', 1)[1]
+            edges[qid]['type'] = edge_type
+    kgraph['edges'] = list(edges.values())
+
+    return kgraph

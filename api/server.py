@@ -7,9 +7,10 @@ import httpx
 from starlette.responses import Response
 
 from api.models import Query, Message
-from core.transpile import build_query, parse_response
+from core.transpile import build_query, parse_response, get_details, parse_kgraph
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
 
 app = FastAPI(
     title='CAM-KP API',
@@ -36,7 +37,7 @@ async def answer_query(query: Query = Body(..., example=example)) -> Message:
     """Answer biomedical question."""
     message = query.message.dict()
     sparql_query = build_query(message['query_graph'])
-    LOGGER.info(sparql_query)
+    LOGGER.debug(sparql_query)
     headers = {
         'content-type': 'application/sparql-query',
         'Accept': 'application/json'
@@ -51,5 +52,21 @@ async def answer_query(query: Query = Body(..., example=example)) -> Message:
     message['knowledge_graph'], message['results'] = parse_response(
         response=response.json()['results']['bindings'],
         qgraph=message['query_graph']
+    )
+
+    detail_query, node_map, edge_map = get_details(message['knowledge_graph'])
+    LOGGER.debug(detail_query)
+    async with httpx.AsyncClient(timeout=None) as client:
+        response = await client.post(
+            'https://stars-blazegraph.renci.org/cam/sparql',
+            headers=headers,
+            data=detail_query,
+        )
+    assert response.status_code < 300
+    message['knowledge_graph'] = parse_kgraph(
+        response=response.json()['results']['bindings'],
+        node_map=node_map,
+        edge_map=edge_map,
+        kgraph=message['knowledge_graph']
     )
     return message
