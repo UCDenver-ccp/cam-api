@@ -21,7 +21,7 @@ def build_query(qgraph):
         # enforce node type
         if node['type']:
             pascal_node_type = snake_to_pascal(node['type'])
-            query += f"  bl:{pascal_node_type} blml:class_uri ?{node['type']} .\n"
+            query += f"  bl:{pascal_node_type} ^blml:is_a*/blml:class_uri ?{node['type']} .\n"
             query += f"  ?{node['id']} rdf:type ?{node['type']} .\n"
 
         # get node "direct type" (curie)
