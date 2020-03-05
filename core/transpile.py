@@ -4,35 +4,49 @@ from collections import defaultdict
 from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix
 
 
-def build_query(qgraph):
+def build_query(qgraph, strict=True):
     """Build a SPARQL Query string."""
     query = ''
     for key, value in PREFIXES.items():
         query += f'PREFIX {key}: <{value}>\n'
-    ids = [f"?{node['id']}_type" for node in qgraph['nodes']]
-    ids += [f"?{edge['id']}" for edge in qgraph['edges']]
+    ids = [f"?{node['id']}" for node in qgraph['nodes']]
+    ids += [f"?{node['id']}_type" for node in qgraph['nodes'] if not node.get('curie', None)]
+    ids += list({f"?{edge['type'] or edge['id']}" for edge in qgraph['edges']})
     var_string = ' '.join(ids)
     query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
+    curies = dict()
+    types = set()
     for node in qgraph["nodes"]:
-        # enforce node curie
+
         if node['curie']:
-            query += f"  ?{node['id']} rdf:type {node['curie']} .\n"
+            # enforce node curie
+            curies[node['id']] = node['curie']
+        elif node['type']:
+            # enforce node type
+            curies[node['id']] = f"?{node['id']}_type"
+            if node['type'] not in types:
+                pascal_node_type = snake_to_pascal(node['type'])
+                query += f"  bl:{pascal_node_type} ^blml:is_a*/blml:class_uri ?{node['type']} .\n"
+                types.add(node['type'])
+            query += f"  {curies[node['id']]} rdfs:subClassOf ?{node['type']} .\n"
+        if strict:
+            query += f"  ?{node['id']} sesame:directType {curies[node['id']]} .\n"
 
-        # enforce node type
-        if node['type']:
-            pascal_node_type = snake_to_pascal(node['type'])
-            query += f"  bl:{pascal_node_type} ^blml:is_a*/blml:class_uri ?{node['type']} .\n"
-            query += f"  ?{node['id']} rdf:type ?{node['type']} .\n"
-
-        # get node "direct type" (curie)
-        query += f"  ?{node['id']} sesame:directType ?{node['id']}_type .\n"
-
-    for edge in qgraph['edges']:
-        # enforce edge type
-        query += f"  bl:{edge['type']} blml:slot_uri ?{edge['id']} .\n"
+    predicates = set()
+    for idx, edge in enumerate(qgraph['edges']):
+        var = edge['type'] or edge['id']
+        if edge['type'] and edge['type'] not in predicates:
+            # enforce edge type
+            query += f"  bl:{edge['type']} blml:slot_uri ?{var} .\n"
+            predicates.add(var)
 
         # enforce connectivity
-        query += f"  ?{edge['source_id']} ?{edge['id']} ?{edge['target_id']} .\n"
+        if strict:
+            query += f"  ?{edge['source_id']} ?{var} ?{edge['target_id']} .\n"
+        else:
+            query += f"  ?{edge['source_id']}_{idx} sesame:directType {curies[edge['source_id']]} .\n"
+            query += f"  ?{edge['target_id']}_{idx} sesame:directType {curies[edge['target_id']]} .\n"
+            query += f"  ?{edge['source_id']}_{idx} ?{var} ?{edge['target_id']}_{idx} .\n"
 
     query += "}"
     return query
@@ -89,8 +103,13 @@ def parse_response(response, qgraph):
             "edge_bindings": []
         }
         # handle nodes
+        node_ids = dict()
         for qnode in qgraph['nodes']:
-            node_id = apply_prefix(row[f"{qnode['id']}_type"]['value'])
+            if not qnode.get('curie', None):
+                node_id = apply_prefix(row[f"{qnode['id']}_type"]['value'])
+            else:
+                node_id = qnode['curie']
+            node_ids[qnode['id']] = node_id
             kgraph['nodes'][node_id] = {
                 'id': node_id,
             }
@@ -100,10 +119,11 @@ def parse_response(response, qgraph):
             })
         # handle edges
         for qedge in qgraph['edges']:
+            var = qedge['type'] or qedge['id']
             edge_id = f'e{edge_idx:04d}'
-            edge_type = apply_prefix(row[f"{qedge['id']}"]['value'])
-            source_id = apply_prefix(row[f"{qedge['source_id']}_type"]['value'])
-            target_id = apply_prefix(row[f"{qedge['target_id']}_type"]['value'])
+            edge_type = apply_prefix(row[f"{var}"]['value'])
+            source_id = node_ids[qedge['source_id']]
+            target_id = node_ids[qedge['target_id']]
             kgraph['edges'][edge_id] = {
                 'id': edge_id,
                 'type': edge_type,
@@ -143,3 +163,18 @@ def parse_kgraph(response, node_map, edge_map, kgraph):
     kgraph['edges'] = list(edges.values())
 
     return kgraph
+
+
+def get_CAM_query(src, pred, obj):
+    """Generate query to get asserted CAM including triple."""
+    query = ''
+    for key, value in PREFIXES.items():
+        query += f'PREFIX {key}: <{value}>\n'
+    return query + 'SELECT ?g ?other WHERE {' \
+        'GRAPH ?g {{' \
+        f'  {src} {pred} {obj}' \
+        '}' \
+        'OPTIONAL {' \
+        '  ?g prov:wasDerivedFrom ?other .' \
+        '}' \
+        '} LIMIT 10'

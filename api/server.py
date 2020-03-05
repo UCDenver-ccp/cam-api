@@ -23,20 +23,26 @@ with open('examples/has_participant.json') as f:
 
 
 @app.post('/transpile', response_model=str, tags=['query'])
-async def transpile_query(query: Query = Body(..., example=example)) -> str:
+async def transpile_query(
+        query: Query = Body(..., example=example),
+        strict: bool = True,
+) -> str:
     """Transpile Reasoner Standard query to SPARQL."""
     message = query.message.dict()
     qgraph = message['query_graph']
-    sparql_query = build_query(qgraph)
+    sparql_query = build_query(qgraph, strict)
     # return raw text response
     return Response(sparql_query, status_code=200, media_type='text/plain')
 
 
 @app.post('/query', response_model=Message, tags=['query'])
-async def answer_query(query: Query = Body(..., example=example)) -> Message:
+async def answer_query(
+        query: Query = Body(..., example=example),
+        strict: bool = True,
+) -> Message:
     """Answer biomedical question."""
     message = query.message.dict()
-    sparql_query = build_query(message['query_graph'])
+    sparql_query = build_query(message['query_graph'], strict)
     LOGGER.debug(sparql_query)
     headers = {
         'content-type': 'application/sparql-query',
