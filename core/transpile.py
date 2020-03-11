@@ -37,7 +37,7 @@ def build_query(qgraph, strict=True):
         var = edge['type'] or edge['id']
         if edge['type'] and edge['type'] not in predicates:
             # enforce edge type
-            query += f"  bl:{edge['type']} blml:slot_uri ?{var} .\n"
+            query += f"  bl:{edge['type']} ^blml:is_a*/blml:slot_uri ?{var} .\n"
             predicates.add(var)
 
         # enforce connectivity
@@ -170,11 +170,11 @@ def get_CAM_query(src, pred, obj):
     query = ''
     for key, value in PREFIXES.items():
         query += f'PREFIX {key}: <{value}>\n'
-    return query + 'SELECT ?g ?other WHERE {' \
-        'GRAPH ?g {{' \
-        f'  {src} {pred} {obj}' \
-        '}' \
-        'OPTIONAL {' \
-        '  ?g prov:wasDerivedFrom ?other .' \
-        '}' \
-        '} LIMIT 10'
+    return query + 'SELECT ?g ?other WHERE {\n' \
+        '  GRAPH ?g {\n' \
+        f'   <{src}> <{pred}> <{obj}>\n' \
+        '  }\n' \
+        '  OPTIONAL {\n' \
+        '    ?g prov:wasDerivedFrom ?other .\n' \
+        '  }\n' \
+        '}'
