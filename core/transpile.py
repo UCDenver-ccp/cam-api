@@ -178,3 +178,20 @@ def get_CAM_query(src, pred, obj):
         '    ?g prov:wasDerivedFrom ?other .\n' \
         '  }\n' \
         '}'
+
+
+def get_CAM_stuff_query(graph):
+    """Generate query to get CAM triples."""
+    query = ''
+    for key, value in PREFIXES.items():
+        query += f'PREFIX {key}: <{value}>\n'
+    return query + 'SELECT ?s_type ?p_type ?o_type WHERE {\n' \
+        f'  GRAPH <{graph}> {{\n' \
+        '    ?s ?p ?o .\n' \
+        '    ?s rdf:type owl:NamedIndividual .\n' \
+        '    ?o rdf:type owl:NamedIndividual .\n' \
+        '  }\n' \
+        '  ?o sesame:directType ?o_type .\n' \
+        '  ?s sesame:directType ?s_type .\n' \
+        '  ?p_type blml:slot_uri ?p .\n' \
+        '}'
