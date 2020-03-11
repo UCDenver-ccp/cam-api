@@ -14,6 +14,8 @@ PREFIXES = {
     'obo': 'http://purl.obolibrary.org/obo/',
     'NCBIGENE': 'http://identifiers.org/ncbigene:',
     'sesame': 'http://www.openrdf.org/schema/sesame#',
+    'owl': 'http://www.w3.org/2002/07/owl#',
+    'prov': 'http://www.w3.org/ns/prov#',
 }
 
 
