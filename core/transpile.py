@@ -1,8 +1,15 @@
 """Build a SPARQL Query."""
 from collections import defaultdict
 
-from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix
+import httpx
 
+from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix, hash_dict
+
+BLAZEGRAPH_URL = 'https://stars-blazegraph.renci.org/cam/sparql'
+BLAZEGRAPH_HEADERS = {
+    'content-type': 'application/sparql-query',
+    'Accept': 'application/json'
+}
 
 def build_query(qgraph, strict=True, limit=-1):
     """Build a SPARQL Query string."""
@@ -15,7 +22,6 @@ def build_query(qgraph, strict=True, limit=-1):
     var_string = ' '.join(ids)
     query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
     curies = dict()
-    types = set()
     for node in qgraph["nodes"]:
 
         if node['curie']:
@@ -24,11 +30,8 @@ def build_query(qgraph, strict=True, limit=-1):
         elif node['type']:
             # enforce node type
             curies[node['id']] = f"?{node['id']}_type"
-            if node['type'] not in types:
-                pascal_node_type = snake_to_pascal(node['type'])
-                query += f"  bl:{pascal_node_type} ^blml:is_a*/blml:class_uri ?{node['type']} .\n"
-                types.add(node['type'])
-            query += f"  {curies[node['id']]} rdfs:subClassOf ?{node['type']} .\n"
+            pascal_node_type = snake_to_pascal(node['type'])
+            query += f"  {curies[node['id']]} rdfs:subClassOf bl:{pascal_node_type} .\n"
         if strict:
             query += f"  ?{node['id']} sesame:directType {curies[node['id']]} .\n"
 
@@ -37,7 +40,7 @@ def build_query(qgraph, strict=True, limit=-1):
         var = edge['type'] or edge['id']
         if edge['type'] and edge['type'] not in predicates:
             # enforce edge type
-            query += f"  bl:{edge['type']} ^blml:is_a*/blml:slot_uri ?{var} .\n"
+            query += f"  bl:{edge['type']} <http://reasoner.renci.org/vocab/slot_mapping> ?{var} .\n"
             predicates.add(var)
 
         # enforce connectivity
@@ -91,7 +94,7 @@ def get_details(kgraph):
     return query, node_map, {key: edge_map[value] for key, value in edge_map2.items()}
 
 
-def parse_response(response, qgraph):
+async def parse_response(response, qgraph):
     """Parse the query response."""
     results = []
     kgraph = {
@@ -122,19 +125,39 @@ def parse_response(response, qgraph):
         # handle edges
         for qedge in qgraph['edges']:
             var = qedge['type'] or qedge['id']
-            edge_id = f'e{edge_idx:04d}'
             edge_type = apply_prefix(row[f"{var}"]['value'])
             source_id = node_ids[qedge['source_id']]
             target_id = node_ids[qedge['target_id']]
-            kgraph['edges'][edge_id] = {
-                'id': edge_id,
+            edge = {
                 'type': edge_type,
                 'source_id': source_id,
                 'target_id': target_id,
             }
+            edge_id = hash_dict(edge)
+            kgraph['edges'][edge_id] = {
+                'id': edge_id,
+                **edge,
+            }
+
+            src = row[qedge['source_id']]['value']
+            pred = row[qedge['type'] or qedge['id']]['value']
+            obj = row[qedge['target_id']]['value']
+            query = get_CAM_query(src, pred, obj)
+            async with httpx.AsyncClient(timeout=None) as client:
+                response = await client.post(
+                    BLAZEGRAPH_URL,
+                    headers=BLAZEGRAPH_HEADERS,
+                    data=query,
+                )
+            assert response.status_code < 300
+            bindings = response.json()['results']['bindings']
+            assert len(bindings) == 1
+            graph = (bindings[0].get('other', None) or bindings[0]['g'])['value']
+
             result['edge_bindings'].append({
                 'qg_id': qedge['id'],
                 'kg_id': edge_id,
+                'provenance': graph,
             })
             edge_idx += 1
         results.append(result)

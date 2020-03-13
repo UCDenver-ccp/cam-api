@@ -8,6 +8,7 @@ from starlette.responses import Response
 
 from api.models import Query, Message
 from core.transpile import build_query, parse_response, get_details, parse_kgraph, get_CAM_query, get_CAM_stuff_query
+from core.utilities import apply_prefix, hash_dict
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
@@ -61,30 +62,19 @@ async def answer_query(
     assert response.status_code < 300
 
     # parse results
-    bindings = response.json()['results']['bindings']
-    message['knowledge_graph'], message['results'] = parse_response(
-        response=bindings,
+    results = response.json()['results']['bindings']
+    message['knowledge_graph'], message['results'] = await parse_response(
+        response=results,
         qgraph=message['query_graph']
     )
 
-    if strict:
-        # add extra CAM stuff
-        qedge = message['query_graph']['edges'][0]
-        result = bindings[0]
-        src = result[qedge['source_id']]['value']
-        pred = result[qedge['type'] or qedge['id']]['value']
-        obj = result[qedge['target_id']]['value']
-        query = get_CAM_query(src, pred, obj)
-        async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post(
-                BLAZEGRAPH_URL,
-                headers=headers,
-                data=query,
-            )
-        assert response.status_code < 300
-        bindings = response.json()['results']['bindings']
-        assert len(bindings) == 1
-        graph = (bindings[0].get('other', None) or bindings[0]['g'])['value']
+    # add extra CAM stuff
+    graphs = set()
+    for result in message['results']:
+        for eb in result['edge_bindings']:
+            graphs.add(eb['provenance'])
+    all_cams = []
+    for graph in graphs:
         query = get_CAM_stuff_query(graph)
         async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post(
@@ -93,26 +83,28 @@ async def answer_query(
                 data=query,
             )
         assert response.status_code < 300
-        bindings = response.json()['results']['bindings']
+        all_cams.extend(response.json()['results']['bindings'])
 
-        for idx, triple in enumerate(bindings):
-            
-            source_id = triple['s_type']['value']
-            message['knowledge_graph']['nodes'][source_id] = {
-                'id': source_id
-            }
-            target_id = triple['o_type']['value']
-            message['knowledge_graph']['nodes'][target_id] = {
-                'id': target_id
-            }
-            edge_id = f'ee{idx:04d}'
-            edge_type = triple['p_type']['value']
-            message['knowledge_graph']['edges'][edge_id] = {
-                'id': edge_id,
-                'type': edge_type,
-                'source_id': source_id,
-                'target_id': target_id,
-            }
+    for triple in all_cams:
+        source_id = apply_prefix(triple['s_type']['value'])
+        message['knowledge_graph']['nodes'][source_id] = {
+            'id': source_id
+        }
+        target_id = apply_prefix(triple['o_type']['value'])
+        message['knowledge_graph']['nodes'][target_id] = {
+            'id': target_id
+        }
+        edge_type = apply_prefix(triple['p_type']['value'])
+        edge = {
+            'type': edge_type,
+            'source_id': source_id,
+            'target_id': target_id,
+        }
+        edge_id = hash_dict(edge)
+        message['knowledge_graph']['edges'][edge_id] = {
+            'id': edge_id,
+            **edge,
+        }
     LOGGER.debug(message['knowledge_graph'])
 
     # get knowledge graph
