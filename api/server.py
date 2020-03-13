@@ -41,10 +41,11 @@ async def transpile_query(
 async def answer_query(
         query: Query = Body(..., example=example),
         strict: bool = True,
+        limit: int = -1,
 ) -> Message:
     """Answer biomedical question."""
     message = query.message.dict()
-    sparql_query = build_query(message['query_graph'], strict)
+    sparql_query = build_query(message['query_graph'], strict=strict, limit=limit)
     # LOGGER.debug(sparql_query)
     headers = {
         'content-type': 'application/sparql-query',

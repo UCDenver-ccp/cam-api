@@ -4,7 +4,7 @@ from collections import defaultdict
 from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix
 
 
-def build_query(qgraph, strict=True):
+def build_query(qgraph, strict=True, limit=-1):
     """Build a SPARQL Query string."""
     query = ''
     for key, value in PREFIXES.items():
@@ -49,6 +49,8 @@ def build_query(qgraph, strict=True):
             query += f"  ?{edge['source_id']}_{idx} ?{var} ?{edge['target_id']}_{idx} .\n"
 
     query += "}"
+    if limit >= 0:
+        query += f" LIMIT {limit}"
     return query
 
 
