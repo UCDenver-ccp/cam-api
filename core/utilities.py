@@ -14,6 +14,7 @@ PREFIXES = {
     'RO': 'http://purl.obolibrary.org/obo/RO_',
     'GO': 'http://purl.obolibrary.org/obo/GO_',
     'CHEBI': 'http://purl.obolibrary.org/obo/CHEBI_',
+    'BFO': 'http://purl.obolibrary.org/obo/BFO_',
     'obo': 'http://purl.obolibrary.org/obo/',
     'NCBIGENE': 'http://identifiers.org/ncbigene:',
     'sesame': 'http://www.openrdf.org/schema/sesame#',
