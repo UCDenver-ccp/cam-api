@@ -1,4 +1,5 @@
 """REST portal for CAM-KP RDF database."""
+from collections import defaultdict
 import json
 import logging
 
@@ -47,7 +48,6 @@ async def answer_query(
     """Answer biomedical question."""
     message = query.message.dict()
     sparql_query = build_query(message['query_graph'], strict=strict, limit=limit)
-    # LOGGER.debug(sparql_query)
     headers = {
         'content-type': 'application/sparql-query',
         'Accept': 'application/json'
@@ -70,12 +70,18 @@ async def answer_query(
 
     # add extra CAM stuff
     graphs = set()
+    results_by_graph = defaultdict(list)
     for result in message['results']:
+        uris = set()
         for eb in result['edge_bindings']:
             graphs.add(eb['provenance'])
-    all_cams = []
-    for graph in graphs:
-        query = get_CAM_stuff_query(graph)
+            uris.add(eb['provenance'])
+        for uri in uris:
+            results_by_graph[uri].append(result)
+        result['extra_nodes'] = dict()
+        result['extra_edges'] = dict()
+    for graph_uri in graphs:
+        query = get_CAM_stuff_query(graph_uri)
         async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post(
                 BLAZEGRAPH_URL,
@@ -83,33 +89,45 @@ async def answer_query(
                 data=query,
             )
         assert response.status_code < 300
-        all_cams.extend(response.json()['results']['bindings'])
+        cam = response.json()['results']['bindings']
 
-    for triple in all_cams:
-        source_id = apply_prefix(triple['s_type']['value'])
-        message['knowledge_graph']['nodes'][source_id] = {
-            'id': source_id
-        }
-        target_id = apply_prefix(triple['o_type']['value'])
-        message['knowledge_graph']['nodes'][target_id] = {
-            'id': target_id
-        }
-        edge_type = apply_prefix(triple['p_type']['value'])
-        edge = {
-            'type': edge_type,
-            'source_id': source_id,
-            'target_id': target_id,
-        }
-        edge_id = hash_dict(edge)
-        message['knowledge_graph']['edges'][edge_id] = {
-            'id': edge_id,
-            **edge,
-        }
-    LOGGER.debug(message['knowledge_graph'])
+        for triple in cam:
+            source_id = apply_prefix(triple['s_type']['value'])
+            message['knowledge_graph']['nodes'][source_id] = {
+                'id': source_id
+            }
+            target_id = apply_prefix(triple['o_type']['value'])
+            message['knowledge_graph']['nodes'][target_id] = {
+                'id': target_id
+            }
+            edge_type = apply_prefix(triple['p_type']['value'])
+            edge = {
+                'type': edge_type,
+                'source_id': source_id,
+                'target_id': target_id,
+            }
+            edge_id = hash_dict(edge)
+            message['knowledge_graph']['edges'][edge_id] = {
+                'id': edge_id,
+                **edge,
+            }
+            for result in results_by_graph[graph_uri]:
+                result['extra_nodes'][f'{source_id}_{graph_uri}'] = {
+                    'kg_id': source_id,
+                }
+                result['extra_nodes'][f'{target_id}_{graph_uri}'] = {
+                    'kg_id': target_id,
+                }
+                result['extra_edges'][f'{edge_id}_{graph_uri}'] = {
+                    'kg_id': edge_id,
+                    'provenance': graph_uri,
+                }
+    for result in message['results']:
+        result['extra_edges'] = list(result['extra_edges'].values())
+        result['extra_nodes'] = list(result['extra_nodes'].values())
 
     # get knowledge graph
     detail_query, node_map, edge_map = get_details(message['knowledge_graph'])
-    # LOGGER.debug(detail_query)
     async with httpx.AsyncClient(timeout=None) as client:
         response = await client.post(
             BLAZEGRAPH_URL,

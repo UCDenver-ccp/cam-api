@@ -1,5 +1,5 @@
 """ReasonerStdAPI models."""
-from typing import Union, List
+from typing import Union, List, Dict
 from pydantic import BaseModel, AnyUrl
 
 # https://github.com/swagger-api/swagger-ui/issues/5804
@@ -81,6 +81,7 @@ class EdgeBinding(BaseModel):
 
     qg_id: str
     kg_id: Union[str, List[str]]
+    provenance: str = None
 
 
 class NodeBinding(BaseModel):
@@ -95,6 +96,8 @@ class Result(BaseModel):
 
     node_bindings: List[NodeBinding]
     edge_bindings: List[EdgeBinding]
+    extra_nodes: List[Dict] = None
+    extra_edges: List[Dict] = None
 
 
 class Message(BaseModel):
