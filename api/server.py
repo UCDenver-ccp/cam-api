@@ -34,7 +34,7 @@ async def transpile_query(
     """Transpile Reasoner Standard query to SPARQL."""
     message = query.message.dict()
     qgraph = message['query_graph']
-    sparql_query = build_query(qgraph, strict)
+    sparql_query = await build_query(qgraph, strict)
     # return raw text response
     return Response(sparql_query, status_code=200, media_type='text/plain')
 
@@ -47,7 +47,7 @@ async def answer_query(
 ) -> Message:
     """Answer biomedical question."""
     message = query.message.dict()
-    sparql_query = build_query(message['query_graph'], strict=strict, limit=limit)
+    sparql_query = await build_query(message['query_graph'], strict=strict, limit=limit)
     headers = {
         'content-type': 'application/sparql-query',
         'Accept': 'application/json'

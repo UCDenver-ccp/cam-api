@@ -11,14 +11,14 @@ BLAZEGRAPH_HEADERS = {
     'Accept': 'application/json'
 }
 
-def build_query(qgraph, strict=True, limit=-1):
+async def build_query(qgraph, strict=True, limit=-1):
     """Build a SPARQL Query string."""
     query = ''
     for key, value in PREFIXES.items():
         query += f'PREFIX {key}: <{value}>\n'
     ids = [f"?{node['id']}" for node in qgraph['nodes']]
     ids += [f"?{node['id']}_type" for node in qgraph['nodes'] if not node.get('curie', None)]
-    ids += list({f"?{edge['type'] or edge['id']}" for edge in qgraph['edges']})
+    ids += list({f"?{edge['id']}" for edge in qgraph['edges']})
     var_string = ' '.join(ids)
     query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
     curies = dict()
@@ -35,13 +35,27 @@ def build_query(qgraph, strict=True, limit=-1):
         if strict:
             query += f"  ?{node['id']} sesame:directType {curies[node['id']]} .\n"
 
-    predicates = set()
     for idx, edge in enumerate(qgraph['edges']):
-        var = edge['type'] or edge['id']
-        if edge['type'] and edge['type'] not in predicates:
+        var = edge['id']
+        if edge['type']:
             # enforce edge type
-            query += f"  bl:{edge['type']} <http://reasoner.renci.org/vocab/slot_mapping> ?{var} .\n"
-            predicates.add(var)
+            predicate_query = f"""
+            PREFIX bl: <https://w3id.org/biolink/vocab/>
+            SELECT DISTINCT ?predicate
+            WHERE {{
+                bl:{edge['type']} <http://reasoner.renci.org/vocab/slot_mapping> ?predicate .
+            }}
+            """
+            async with httpx.AsyncClient(timeout=None) as client:
+                response = await client.post(
+                    BLAZEGRAPH_URL,
+                    headers=BLAZEGRAPH_HEADERS,
+                    data=predicate_query,
+                )
+            assert response.status_code < 300
+            bindings = response.json()['results']['bindings']
+            predicates = " ".join([ f"<{binding['predicate']['value']}>" for binding in bindings ])
+            query += f"VALUES ?{var} {{ {predicates} }}\n"
 
         # enforce connectivity
         if strict:
@@ -124,7 +138,7 @@ async def parse_response(response, qgraph):
             })
         # handle edges
         for qedge in qgraph['edges']:
-            var = qedge['type'] or qedge['id']
+            var = qedge['id']
             edge_type = apply_prefix(row[f"{var}"]['value'])
             source_id = node_ids[qedge['source_id']]
             target_id = node_ids[qedge['target_id']]
@@ -140,7 +154,7 @@ async def parse_response(response, qgraph):
             }
 
             src = row[qedge['source_id']]['value']
-            pred = row[qedge['type'] or qedge['id']]['value']
+            pred = row[qedge['id']]['value']
             obj = row[qedge['target_id']]['value']
             query = get_CAM_query(src, pred, obj)
             async with httpx.AsyncClient(timeout=None) as client:
