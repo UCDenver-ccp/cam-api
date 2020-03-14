@@ -100,7 +100,7 @@ async def answer_query(
             message['knowledge_graph']['nodes'][target_id] = {
                 'id': target_id
             }
-            edge_type = apply_prefix(triple['p_type']['value'])
+            edge_type = apply_prefix(triple['p']['value'])
             edge = {
                 'type': edge_type,
                 'source_id': source_id,

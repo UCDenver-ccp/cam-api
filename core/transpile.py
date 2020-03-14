@@ -88,7 +88,7 @@ def get_details(kgraph):
         if kid.startswith('http'):
             kid = f'<{kid}>'
         # get edge biolink slot
-        query += f"  ?{qid}_blslot blml:slot_uri {kid} .\n"
+        query += f"  OPTIONAL {{?{qid}_blslot blml:slot_uri {kid} .}} .\n"
 
     query += "}"
     return query, node_map, {key: edge_map[value] for key, value in edge_map2.items()}
@@ -182,6 +182,8 @@ def parse_kgraph(response, node_map, edge_map, kgraph):
     edges = kgraph['edges']
     for qid, kids in edge_map.items():
         for row in response:
+            if f"{qid}_blslot" not in row:
+                continue
             edge_type = node_type = apply_prefix(row[f"{qid}_blslot"]['value']).split(':', 1)[1]
             for kid in kids:
                 edges[kid]['type'] = edge_type
@@ -210,7 +212,7 @@ def get_CAM_stuff_query(graph):
     query = ''
     for key, value in PREFIXES.items():
         query += f'PREFIX {key}: <{value}>\n'
-    return query + 'SELECT ?s_type ?p_type ?o_type WHERE {\n' \
+    return query + 'SELECT ?s_type ?p ?o_type WHERE {\n' \
         f'  GRAPH <{graph}> {{\n' \
         '    ?s ?p ?o .\n' \
         '    ?s rdf:type owl:NamedIndividual .\n' \
@@ -218,5 +220,4 @@ def get_CAM_stuff_query(graph):
         '  }\n' \
         '  ?o sesame:directType ?o_type .\n' \
         '  ?s sesame:directType ?s_type .\n' \
-        '  ?p_type blml:slot_uri ?p .\n' \
         '}'
