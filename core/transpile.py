@@ -154,7 +154,7 @@ async def parse_response(response, qgraph):
             }
 
             src = row[qedge['source_id']]['value']
-            pred = row[qedge['type'] or qedge['id']]['value']
+            pred = row[qedge['id']]['value']
             obj = row[qedge['target_id']]['value']
             query = get_CAM_query(src, pred, obj)
             async with httpx.AsyncClient(timeout=None) as client:
