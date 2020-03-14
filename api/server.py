@@ -67,6 +67,12 @@ async def answer_query(
         response=results,
         qgraph=message['query_graph']
     )
+    if not results:
+        message['knowledge_graph'] = {
+            'nodes': [],
+            'edges': [],
+        }
+        return message
 
     # add extra CAM stuff
     graphs = set()
