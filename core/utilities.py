@@ -107,7 +107,7 @@ PREFIXES = {
     'blml': 'https://w3id.org/biolink/biolinkml/meta/',
     'bl': 'https://w3id.org/biolink/vocab/',
     'MONDO': 'http://purl.obolibrary.org/obo/MONDO_',
-    'EMAPA': 'http://purl.obolibrary.org/obo/EMAPA_'
+    'EMAPA': 'http://purl.obolibrary.org/obo/EMAPA_',
     'SO': 'http://purl.obolibrary.org/obo/SO_',
     'RO': 'http://purl.obolibrary.org/obo/RO_',
     'GO': 'http://purl.obolibrary.org/obo/GO_',
