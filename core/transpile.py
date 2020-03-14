@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import httpx
 
-from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix, hash_dict
+from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix, hash_dict, unprefix
 
 BLAZEGRAPH_URL = 'https://stars-blazegraph.renci.org/cam/sparql'
 BLAZEGRAPH_HEADERS = {
@@ -56,7 +56,6 @@ def build_query(qgraph, strict=True, limit=-1):
         query += f" LIMIT {limit}"
     return query
 
-
 def get_details(kgraph):
     """Get node and edge details."""
     node_map = {
@@ -70,28 +69,29 @@ def get_details(kgraph):
     query = ''
     for key, value in PREFIXES.items():
         query += f'PREFIX {key}: <{value}>\n'
-    var_strings = [f"?{qid}_blclass" for qid in node_map]
-    var_strings += [f"?{qid}_label" for qid in node_map]
-    var_strings += [f"?{qid}_blslot" for qid in edge_map2]
-    var_string = ' '.join(var_strings)
-    query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
-    for qid, kid in node_map.items():
-        if kid.startswith('http'):
-            kid = f'<{kid}>'
-        # get node label and biolink class
-        query += f"  OPTIONAL {{\n"
-        query += f"    {kid} rdfs:subClassOf ?{qid}_class .\n"
-        query += f"    ?{qid}_class ^blml:class_uri/blml:isa* ?{qid}_blclass .\n"
-        query += f"    OPTIONAL {{{kid} rdfs:label ?{qid}_label .}} .\n"
-        query += f"  }} .\n"
-    for qid, kid in edge_map2.items():
-        if kid.startswith('http'):
-            kid = f'<{kid}>'
-        # get edge biolink slot
-        query += f"  OPTIONAL {{?{qid}_blslot blml:slot_uri {kid} .}} .\n"
-
+    query += f'\nSELECT DISTINCT ?kid ?blclass ?label WHERE {{\n'
+    values = " ".join([ f'<{unprefix(kid)}>' for qid, kid in node_map.items() ])
+    query += f'VALUES ?kid {{ {values} }}\n'
+    query += '?kid rdfs:subClassOf ?blclass .\n'
+    query += '?blclass blml:is_a* bl:NamedThing .\n'
+    query += 'OPTIONAL { ?kid rdfs:label ?label . }'
     query += "}"
-    return query, node_map, {key: edge_map[value] for key, value in edge_map2.items()}
+    
+    slot_query = ''
+    for key, value in PREFIXES.items():
+        slot_query += f'PREFIX {key}: <{value}>\n'
+    slot_query += f'\nSELECT DISTINCT ?qid ?kid ?blslot ?label WHERE {{\n'
+    values = " ".join([ f'( <{unprefix(kid)}> "{qid}" )' for qid, kid in edge_map2.items() ])
+    slot_query += f'VALUES (?kid ?qid) {{ {values} }}\n'
+    slot_query += '?blslot <http://reasoner.renci.org/vocab/slot_mapping> ?kid .\n'
+    slot_query += """FILTER NOT EXISTS {
+        ?other <http://reasoner.renci.org/vocab/slot_mapping> ?kid .
+        ?other blml:is_a+/blml:mixins* ?blslot .
+    }"""
+    slot_query += 'OPTIONAL { ?kid rdfs:label ?label . }\n'
+    slot_query += "}"
+    
+    return query, slot_query, node_map, {key: edge_map[value] for key, value in edge_map2.items()}
 
 
 async def parse_response(response, qgraph):
@@ -165,28 +165,26 @@ async def parse_response(response, qgraph):
     return kgraph, results
 
 
-def parse_kgraph(response, node_map, edge_map, kgraph):
+def parse_kgraph(response, slot_response, node_map, edge_map, kgraph):
     """Parse the query response."""
     nodes = kgraph['nodes']
     for qid, kid in node_map.items():
         nodes[kid]['type'] = set()
         for row in response:
-            if f"{qid}_label" in row:
-                nodes[kid]['name'] = row[f"{qid}_label"]['value']
-            if f"{qid}_blclass" in row:
-                node_type = pascal_to_snake(apply_prefix(row[f"{qid}_blclass"]['value']).split(':', 1)[1])
+            fullkid = unprefix(kid)
+            if row['kid']['value'] == fullkid:
+                nodes[kid]['name'] = row['label']['value']
+                node_type = pascal_to_snake(apply_prefix(row['blclass']['value']).split(':', 1)[1])
                 nodes[kid]['type'].add(node_type)
-        nodes[kid]['type'] = list(nodes[kid]['type'])
     kgraph['nodes'] = list(nodes.values())
 
     edges = kgraph['edges']
     for qid, kids in edge_map.items():
-        for row in response:
-            if f"{qid}_blslot" not in row:
-                continue
-            edge_type = node_type = apply_prefix(row[f"{qid}_blslot"]['value']).split(':', 1)[1]
-            for kid in kids:
-                edges[kid]['type'] = edge_type
+        for row in slot_response:
+            if row['qid']['value'] == qid:
+                edge_type = apply_prefix(row['blslot']['value']).split(':', 1)[1]
+                for kid in kids:
+                    edges[kid]['type'] = edge_type
     kgraph['edges'] = list(edges.values())
 
     return kgraph
