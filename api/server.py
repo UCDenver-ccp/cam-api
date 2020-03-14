@@ -112,16 +112,21 @@ async def answer_query(
                 **edge,
             }
             for result in results_by_graph[graph_uri]:
-                result['extra_nodes'][f'{source_id}_{graph_uri}'] = {
-                    'kg_id': source_id,
-                }
-                result['extra_nodes'][f'{target_id}_{graph_uri}'] = {
-                    'kg_id': target_id,
-                }
-                result['extra_edges'][f'{edge_id}_{graph_uri}'] = {
-                    'kg_id': edge_id,
-                    'provenance': graph_uri,
-                }
+                if source_id not in (nb['kg_id'] for nb in result['node_bindings']):
+                    result['extra_nodes'][f'{source_id}_{graph_uri}'] = {
+                        'kg_id': source_id,
+                    }
+
+                if target_id not in (nb['kg_id'] for nb in result['node_bindings']):
+                    result['extra_nodes'][f'{target_id}_{graph_uri}'] = {
+                        'kg_id': target_id,
+                    }
+
+                if edge_id not in (eb['kg_id'] for eb in result['edge_bindings']):
+                    result['extra_edges'][f'{edge_id}_{graph_uri}'] = {
+                        'kg_id': edge_id,
+                        'provenance': graph_uri,
+                    }
     for result in message['results']:
         result['extra_edges'] = list(result['extra_edges'].values())
         result['extra_nodes'] = list(result['extra_nodes'].values())
