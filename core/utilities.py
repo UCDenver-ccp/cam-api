@@ -45,3 +45,11 @@ def apply_prefix(string):
         if string.startswith(long):
             return short + ':' + string[len(long):]
     return string
+
+def unprefix(curie):
+    """Expand a CURIE to a full URI."""
+    parts = curie.split(":", 1)
+    if len(parts) > 1 and parts[0] in PREFIXES:
+        return PREFIXES.get(parts[0]) + parts[1]
+    else:
+        return curie

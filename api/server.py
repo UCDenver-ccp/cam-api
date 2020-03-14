@@ -138,7 +138,7 @@ async def answer_query(
         result['extra_nodes'] = list(result['extra_nodes'].values())
 
     # get knowledge graph
-    detail_query, node_map, edge_map = get_details(message['knowledge_graph'])
+    detail_query, slot_query, node_map, edge_map = get_details(message['knowledge_graph'])
     async with httpx.AsyncClient(timeout=None) as client:
         response = await client.post(
             BLAZEGRAPH_URL,
@@ -146,10 +146,19 @@ async def answer_query(
             data=detail_query,
         )
     assert response.status_code < 300
+    
+    async with httpx.AsyncClient(timeout=None) as client:
+        slot_response = await client.post(
+            BLAZEGRAPH_URL,
+            headers=headers,
+            data=slot_query,
+        )
+    assert response.status_code < 300
 
     # parse knowledge graph
     message['knowledge_graph'] = parse_kgraph(
         response=response.json()['results']['bindings'],
+        slot_response = slot_response.json()['results']['bindings'],
         node_map=node_map,
         edge_map=edge_map,
         kgraph=message['knowledge_graph']
