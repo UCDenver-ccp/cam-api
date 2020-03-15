@@ -1,4 +1,6 @@
 """Utilities."""
+from collections import defaultdict
+import copy
 import hashlib
 import json
 import re
@@ -151,3 +153,36 @@ def unprefix(curie):
         return PREFIXES.get(parts[0]) + parts[1]
     else:
         return curie
+
+
+BIG_NUMBER = 99999
+
+
+def trim_qgraph(qgraph):
+    """Return a generator of sub-qgraphs with one edge removed.
+
+    The chosen edge will be one of the ones with the lowest combined endpoint degree.
+    No edge connected to a node with prescribed curie will be removed.
+    After removing the edge, nodes with degree zero will be removed.
+    """
+    node_degree = defaultdict(int)
+    for edge in qgraph['edges']:
+        node_degree[edge['source_id']] += 1
+        node_degree[edge['target_id']] += 1
+    for node in qgraph['nodes']:
+        if node.get('curie', None):
+            node_degree[node['id']] = BIG_NUMBER
+    edge_importance = {
+        edge['id']: node_degree[edge['source_id']] + node_degree[edge['target_id']]
+        for edge in qgraph['edges']
+    }
+    min_importance = min(edge_importance.values())
+    if min_importance >= BIG_NUMBER:
+        return
+    for edge in qgraph['edges']:
+        if edge_importance[edge['id']] == min_importance:
+            yield {
+                'nodes': qgraph['nodes'],
+                'edges': [e for e in qgraph['edges'] if e['id'] != edge['id']]
+            }
+    # TODO: remove orphaned nodes

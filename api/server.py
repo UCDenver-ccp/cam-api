@@ -2,14 +2,15 @@
 from collections import defaultdict
 import json
 import logging
+from typing import List
 
 from fastapi import FastAPI, Body
 import httpx
 from starlette.responses import Response
 
-from api.models import Query, Message
+from api.models import Query, Message, QueryGraph
 from core.transpile import build_query, parse_response, get_details, parse_kgraph, get_CAM_query, get_CAM_stuff_query
-from core.utilities import apply_prefix, hash_dict
+from core.utilities import apply_prefix, hash_dict, trim_qgraph
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
@@ -37,6 +38,17 @@ async def transpile_query(
     sparql_query = await build_query(qgraph, strict)
     # return raw text response
     return Response(sparql_query, status_code=200, media_type='text/plain')
+
+
+example = example['message']['query_graph']
+
+
+@app.post('/subquery', response_model=List[QueryGraph], tags=['query'])
+async def generate_subqueries(
+        qgraph: QueryGraph = Body(..., example=example),
+) -> List[QueryGraph]:
+    """Generate sub-queries by removing one edge at a time."""
+    return list(trim_qgraph(qgraph.dict()))
 
 
 @app.post('/query', response_model=Message, tags=['query'])
