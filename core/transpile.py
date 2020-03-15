@@ -27,13 +27,12 @@ async def build_query(qgraph, strict=True, limit=-1):
         if node['curie']:
             # enforce node curie
             curies[node['id']] = node['curie']
+            query += f"  ?{node['id']} rdf:type {curies[node['id']]} .\n"
         elif node['type']:
             # enforce node type
-            curies[node['id']] = f"?{node['id']}_type"
             pascal_node_type = snake_to_pascal(node['type'])
-            query += f"  {curies[node['id']]} rdfs:subClassOf bl:{pascal_node_type} .\n"
-        if strict:
-            query += f"  ?{node['id']} sesame:directType {curies[node['id']]} .\n"
+            query += f"  ?{node['id']} rdf:type bl:{pascal_node_type} .\n"
+            curies[node['id']] = f"?{node['id']}_type"
 
     for idx, edge in enumerate(qgraph['edges']):
         var = edge['id']
