@@ -11,6 +11,7 @@ BLAZEGRAPH_HEADERS = {
     'Accept': 'application/json'
 }
 
+
 async def build_query(qgraph, strict=True, limit=-1):
     """Build a SPARQL Query string."""
     query = ''
@@ -53,7 +54,7 @@ async def build_query(qgraph, strict=True, limit=-1):
                 )
             assert response.status_code < 300
             bindings = response.json()['results']['bindings']
-            predicates = " ".join([ f"<{binding['predicate']['value']}>" for binding in bindings ])
+            predicates = " ".join([f"<{binding['predicate']['value']}>" for binding in bindings])
             query += f"VALUES ?{var} {{ {predicates} }}\n"
 
         # enforce connectivity
@@ -82,6 +83,7 @@ async def build_query(qgraph, strict=True, limit=-1):
     prequel += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
     return prequel + query
 
+
 def get_details(kgraph):
     """Get node and edge details."""
     node_map = {
@@ -96,7 +98,7 @@ def get_details(kgraph):
     for key, value in PREFIXES.items():
         query += f'PREFIX {key}: <{value}>\n'
     query += f'\nSELECT DISTINCT ?kid ?blclass ?label WHERE {{\n'
-    values = " ".join([ f'<{unprefix(kid)}>' for qid, kid in node_map.items() ])
+    values = " ".join([f'<{unprefix(kid)}>' for qid, kid in node_map.items()])
     query += f'VALUES ?kid {{ {values} }}\n'
     query += '?kid rdfs:subClassOf ?blclass .\n'
     query += '?blclass blml:is_a* bl:NamedThing .\n'
@@ -107,7 +109,7 @@ def get_details(kgraph):
     for key, value in PREFIXES.items():
         slot_query += f'PREFIX {key}: <{value}>\n'
     slot_query += f'\nSELECT DISTINCT ?qid ?kid ?blslot ?label WHERE {{\n'
-    values = " ".join([ f'( <{unprefix(kid)}> "{qid}" )' for qid, kid in edge_map2.items() ])
+    values = " ".join([f'( <{unprefix(kid)}> "{qid}" )' for qid, kid in edge_map2.items()])
     slot_query += f'VALUES (?kid ?qid) {{ {values} }}\n'
     slot_query += '?blslot <http://reasoner.renci.org/vocab/slot_mapping> ?kid .\n'
     slot_query += """FILTER NOT EXISTS {
