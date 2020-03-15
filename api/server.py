@@ -77,7 +77,8 @@ async def answer_query(
     results = response.json()['results']['bindings']
     message['knowledge_graph'], message['results'] = await parse_response(
         response=results,
-        qgraph=message['query_graph']
+        qgraph=message['query_graph'],
+        strict=strict,
     )
     if not results:
         message['knowledge_graph'] = {
@@ -158,7 +159,7 @@ async def answer_query(
             data=detail_query,
         )
     assert response.status_code < 300
-    
+
     async with httpx.AsyncClient(timeout=None) as client:
         slot_response = await client.post(
             BLAZEGRAPH_URL,
