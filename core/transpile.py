@@ -14,26 +14,26 @@ BLAZEGRAPH_HEADERS = {
 async def build_query(qgraph, strict=True, limit=-1):
     """Build a SPARQL Query string."""
     query = ''
-    for key, value in PREFIXES.items():
-        query += f'PREFIX {key}: <{value}>\n'
-    ids = [f"?{node['id']}" for node in qgraph['nodes']]
-    ids += [f"?{node['id']}_type" for node in qgraph['nodes'] if not node.get('curie', None)]
-    ids += list({f"?{edge['id']}" for edge in qgraph['edges']})
-    var_string = ' '.join(ids)
-    query += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
-    curies = dict()
     for node in qgraph["nodes"]:
 
         if node['curie']:
             # enforce node curie
-            curies[node['id']] = node['curie']
-            query += f"  ?{node['id']} rdf:type {curies[node['id']]} .\n"
+            if strict:
+                query += f"  ?{node['id']} rdf:type {node['curie']} .\n"
+            else:
+                query += f"  ?{node['id']}_type rdfs:subClassOf {node['curie']} .\n"
+
         elif node['type']:
             # enforce node type
             pascal_node_type = snake_to_pascal(node['type'])
-            query += f"  ?{node['id']} rdf:type bl:{pascal_node_type} .\n"
-            curies[node['id']] = f"?{node['id']}_type"
+            if strict:
+                query += f"  ?{node['id']} rdf:type bl:{pascal_node_type} .\n"
+            else:
+                query += f"  ?{node['id']}_type rdfs:subClassOf bl:{pascal_node_type} .\n"
+        if strict:
+            query += f"  ?{node['id']} sesame:directType ?{node['id']}_type .\n"
 
+    instance_vars = set()
     for idx, edge in enumerate(qgraph['edges']):
         var = edge['id']
         if edge['type']:
@@ -59,15 +59,28 @@ async def build_query(qgraph, strict=True, limit=-1):
         # enforce connectivity
         if strict:
             query += f"  ?{edge['source_id']} ?{var} ?{edge['target_id']} .\n"
+            instance_vars.add(edge['source_id'])
+            instance_vars.add(edge['target_id'])
         else:
-            query += f"  ?{edge['source_id']}_{idx} sesame:directType {curies[edge['source_id']]} .\n"
-            query += f"  ?{edge['target_id']}_{idx} sesame:directType {curies[edge['target_id']]} .\n"
+            query += f"  ?{edge['source_id']}_{idx} sesame:directType ?{edge['source_id']}_type .\n"
+            query += f"  ?{edge['target_id']}_{idx} sesame:directType ?{edge['target_id']}_type .\n"
             query += f"  ?{edge['source_id']}_{idx} ?{var} ?{edge['target_id']}_{idx} .\n"
+            instance_vars.add(f"{edge['source_id']}_{idx}")
+            instance_vars.add(f"{edge['target_id']}_{idx}")
 
     query += "}"
     if limit >= 0:
         query += f" LIMIT {limit}"
-    return query
+
+    prequel = ''
+    for key, value in PREFIXES.items():
+        prequel += f'PREFIX {key}: <{value}>\n'
+    ids = [f"?{var}" for var in instance_vars]
+    ids += [f"?{node['id']}_type" for node in qgraph['nodes']]
+    ids += list({f"?{edge['id']}" for edge in qgraph['edges']})
+    var_string = ' '.join(ids)
+    prequel += f'\nSELECT DISTINCT {var_string} WHERE {{\n'
+    return prequel + query
 
 def get_details(kgraph):
     """Get node and edge details."""
@@ -89,7 +102,7 @@ def get_details(kgraph):
     query += '?blclass blml:is_a* bl:NamedThing .\n'
     query += 'OPTIONAL { ?kid rdfs:label ?label . }'
     query += "}"
-    
+
     slot_query = ''
     for key, value in PREFIXES.items():
         slot_query += f'PREFIX {key}: <{value}>\n'
@@ -103,11 +116,11 @@ def get_details(kgraph):
     }"""
     slot_query += 'OPTIONAL { ?kid rdfs:label ?label . }\n'
     slot_query += "}"
-    
+
     return query, slot_query, node_map, {key: edge_map[value] for key, value in edge_map2.items()}
 
 
-async def parse_response(response, qgraph):
+async def parse_response(response, qgraph, strict=True):
     """Parse the query response."""
     results = []
     kgraph = {
@@ -123,10 +136,7 @@ async def parse_response(response, qgraph):
         # handle nodes
         node_ids = dict()
         for qnode in qgraph['nodes']:
-            if not qnode.get('curie', None):
-                node_id = apply_prefix(row[f"{qnode['id']}_type"]['value'])
-            else:
-                node_id = qnode['curie']
+            node_id = apply_prefix(row[f"{qnode['id']}_type"]['value'])
             node_ids[qnode['id']] = node_id
             kgraph['nodes'][node_id] = {
                 'id': node_id,
@@ -136,7 +146,7 @@ async def parse_response(response, qgraph):
                 'kg_id': node_id,
             })
         # handle edges
-        for qedge in qgraph['edges']:
+        for idx, qedge in enumerate(qgraph['edges']):
             var = qedge['id']
             edge_type = apply_prefix(row[f"{var}"]['value'])
             source_id = node_ids[qedge['source_id']]
@@ -152,9 +162,13 @@ async def parse_response(response, qgraph):
                 **edge,
             }
 
-            src = row[qedge['source_id']]['value']
+            if strict:
+                src = row[qedge['source_id']]['value']
+                obj = row[qedge['target_id']]['value']
+            else:
+                src = row[f"{qedge['source_id']}_{idx}"]['value']
+                obj = row[f"{qedge['target_id']}_{idx}"]['value']
             pred = row[qedge['id']]['value']
-            obj = row[qedge['target_id']]['value']
             query = get_CAM_query(src, pred, obj)
             async with httpx.AsyncClient(timeout=None) as client:
                 response = await client.post(
