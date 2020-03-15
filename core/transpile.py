@@ -15,19 +15,21 @@ BLAZEGRAPH_HEADERS = {
 async def build_query(qgraph, strict=True, limit=-1):
     """Build a SPARQL Query string."""
     query = ''
+    node_types = {}
     for node in qgraph["nodes"]:
 
         if node['curie']:
             # enforce node curie
-            query += f"  ?{node['id']} rdf:type {node['curie']} .\n"
+            node_types[node['id']] = node['curie']
         elif node['type']:
             # enforce node type
             pascal_node_type = snake_to_pascal(node['type'])
-            query += f"  ?{node['id']} rdf:type bl:{pascal_node_type} .\n"
+            node_types[node['id']] = f'bl:{pascal_node_type}'
         if strict:
             query += f"  ?{node['id']} sesame:directType ?{node['id']}_type .\n"
 
     instance_vars = set()
+    instance_vars_to_types = {}
     for idx, edge in enumerate(qgraph['edges']):
         var = edge['id']
         if edge['type']:
@@ -54,13 +56,20 @@ async def build_query(qgraph, strict=True, limit=-1):
         if strict:
             query += f"  ?{edge['source_id']} ?{var} ?{edge['target_id']} .\n"
             instance_vars.add(edge['source_id'])
+            instance_vars_to_types[edge['source_id']] = edge['source_id']
             instance_vars.add(edge['target_id'])
+            instance_vars_to_types[edge['target_id']] = edge['target_id']
         else:
             query += f"  ?{edge['source_id']}_{idx} sesame:directType ?{edge['source_id']}_type .\n"
             query += f"  ?{edge['target_id']}_{idx} sesame:directType ?{edge['target_id']}_type .\n"
             query += f"  ?{edge['source_id']}_{idx} ?{var} ?{edge['target_id']}_{idx} .\n"
             instance_vars.add(f"{edge['source_id']}_{idx}")
+            instance_vars_to_types[f"{edge['source_id']}_{idx}"] = edge['source_id']
             instance_vars.add(f"{edge['target_id']}_{idx}")
+            instance_vars_to_types[f"{edge['target_id']}_{idx}"] = edge['target_id']
+    for var, var_to_type in instance_vars_to_types.items():
+        var_type = node_types[var_to_type]
+        query += f"?{var} rdf:type {var_type} .\n"
 
     query += "}"
     if limit >= 0:
