@@ -19,18 +19,11 @@ async def build_query(qgraph, strict=True, limit=-1):
 
         if node['curie']:
             # enforce node curie
-            if strict:
-                query += f"  ?{node['id']} rdf:type {node['curie']} .\n"
-            else:
-                query += f"  ?{node['id']}_type rdfs:subClassOf {node['curie']} .\n"
-
+            query += f"  ?{node['id']} rdf:type {node['curie']} .\n"
         elif node['type']:
             # enforce node type
             pascal_node_type = snake_to_pascal(node['type'])
-            if strict:
-                query += f"  ?{node['id']} rdf:type bl:{pascal_node_type} .\n"
-            else:
-                query += f"  ?{node['id']}_type rdfs:subClassOf bl:{pascal_node_type} .\n"
+            query += f"  ?{node['id']} rdf:type bl:{pascal_node_type} .\n"
         if strict:
             query += f"  ?{node['id']} sesame:directType ?{node['id']}_type .\n"
 
