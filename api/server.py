@@ -10,12 +10,10 @@ from starlette.responses import Response
 
 from api.models import Query, Message, QueryGraph
 from core.transpile import build_query, parse_response, get_details, parse_kgraph, get_CAM_query, get_CAM_stuff_query
-from core.utilities import apply_prefix, hash_dict, trim_qgraph
+from core.utilities import apply_prefix, hash_dict, trim_qgraph, run_query
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-BLAZEGRAPH_URL = 'https://stars-blazegraph.renci.org/cam/sparql'
-# BLAZEGRAPH_URL = 'https://stars-app.renci.org/smallcam/sparql'
 
 app = FastAPI(
     title='CAM-KP API',
@@ -65,16 +63,9 @@ async def answer_query(
         'Accept': 'application/json'
     }
     # get results
-    async with httpx.AsyncClient(timeout=None) as client:
-        response = await client.post(
-            BLAZEGRAPH_URL,
-            headers=headers,
-            data=sparql_query,
-        )
-    assert response.status_code < 300
+    results = await run_query(sparql_query)
 
     # parse results
-    results = response.json()['results']['bindings']
     message['knowledge_graph'], message['results'] = await parse_response(
         response=results,
         qgraph=message['query_graph'],
@@ -101,14 +92,7 @@ async def answer_query(
         result['extra_edges'] = dict()
     for graph_uri in graphs:
         query = get_CAM_stuff_query(graph_uri)
-        async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post(
-                BLAZEGRAPH_URL,
-                headers=headers,
-                data=query,
-            )
-        assert response.status_code < 300
-        cam = response.json()['results']['bindings']
+        cam = await run_query(query)
 
         for triple in cam:
             source_id = apply_prefix(triple['s_type']['value'])
@@ -152,26 +136,13 @@ async def answer_query(
 
     # get knowledge graph
     detail_query, slot_query, node_map, edge_map = get_details(message['knowledge_graph'])
-    async with httpx.AsyncClient(timeout=None) as client:
-        response = await client.post(
-            BLAZEGRAPH_URL,
-            headers=headers,
-            data=detail_query,
-        )
-    assert response.status_code < 300
-
-    async with httpx.AsyncClient(timeout=None) as client:
-        slot_response = await client.post(
-            BLAZEGRAPH_URL,
-            headers=headers,
-            data=slot_query,
-        )
-    assert response.status_code < 300
+    response = await run_query(detail_query)
+    slot_response = await run_query(slot_query)
 
     # parse knowledge graph
     message['knowledge_graph'] = parse_kgraph(
-        response=response.json()['results']['bindings'],
-        slot_response = slot_response.json()['results']['bindings'],
+        response=response,
+        slot_response=slot_response,
         node_map=node_map,
         edge_map=edge_map,
         kgraph=message['knowledge_graph']

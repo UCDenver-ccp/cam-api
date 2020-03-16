@@ -5,6 +5,13 @@ import hashlib
 import json
 import re
 
+import httpx
+
+BLAZEGRAPH_URL = 'https://stars-blazegraph.renci.org/cam/sparql'
+BLAZEGRAPH_HEADERS = {
+    'content-type': 'application/sparql-query',
+    'Accept': 'application/json'
+}
 PREFIXES = {
     "BFO": "http://purl.obolibrary.org/obo/BFO_",
      "BIOGRID": "http://thebiogrid.org/",
@@ -180,3 +187,14 @@ def trim_qgraph(qgraph):
                 'edges': [e for e in qgraph['edges'] if e['id'] != edge['id']]
             }
     # TODO: remove orphaned nodes
+
+async def run_query(query):
+    """Run SPARQL query on Blazegraph database."""
+    async with httpx.AsyncClient(timeout=None) as client:
+        response = await client.post(
+            BLAZEGRAPH_URL,
+            headers=BLAZEGRAPH_HEADERS,
+            data=query,
+        )
+    assert response.status_code < 300
+    return response.json()['results']['bindings']

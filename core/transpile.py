@@ -3,13 +3,7 @@ from collections import defaultdict
 
 import httpx
 
-from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix, hash_dict, unprefix
-
-BLAZEGRAPH_URL = 'https://stars-blazegraph.renci.org/cam/sparql'
-BLAZEGRAPH_HEADERS = {
-    'content-type': 'application/sparql-query',
-    'Accept': 'application/json'
-}
+from core.utilities import PREFIXES, snake_to_pascal, pascal_to_snake, apply_prefix, hash_dict, unprefix, run_query
 
 
 async def build_query(qgraph, strict=True, limit=-1):
@@ -41,14 +35,7 @@ async def build_query(qgraph, strict=True, limit=-1):
                 bl:{edge['type']} <http://reasoner.renci.org/vocab/slot_mapping> ?predicate .
             }}
             """
-            async with httpx.AsyncClient(timeout=None) as client:
-                response = await client.post(
-                    BLAZEGRAPH_URL,
-                    headers=BLAZEGRAPH_HEADERS,
-                    data=predicate_query,
-                )
-            assert response.status_code < 300
-            bindings = response.json()['results']['bindings']
+            bindings = await run_query(predicate_query)
             predicates = " ".join([f"<{binding['predicate']['value']}>" for binding in bindings])
             query += f"VALUES ?{var} {{ {predicates} }}\n"
 
@@ -174,14 +161,7 @@ async def parse_response(response, qgraph, strict=True):
                 obj = row[f"{qedge['target_id']}_{idx}"]['value']
             pred = row[qedge['id']]['value']
             query = get_CAM_query(src, pred, obj)
-            async with httpx.AsyncClient(timeout=None) as client:
-                response = await client.post(
-                    BLAZEGRAPH_URL,
-                    headers=BLAZEGRAPH_HEADERS,
-                    data=query,
-                )
-            assert response.status_code < 300
-            bindings = response.json()['results']['bindings']
+            bindings = await run_query(query)
             assert len(bindings) == 1
             graph = (bindings[0].get('other', None) or bindings[0]['g'])['value']
 
