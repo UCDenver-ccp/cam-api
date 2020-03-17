@@ -47,8 +47,13 @@ async def build_query(qgraph, strict=True, limit=-1):
             instance_vars.add(edge['target_id'])
             instance_vars_to_types[edge['target_id']] = edge['target_id']
         else:
+            exclude_list = "<http://purl.obolibrary.org/obo/GO_0003674>, <http://purl.obolibrary.org/obo/GO_0008150>, <http://purl.obolibrary.org/obo/GO_0005575>"
             query += f"  ?{edge['source_id']}_{idx} sesame:directType ?{edge['source_id']}_type .\n"
+            query += f"FILTER(?{edge['source_id']}_type NOT IN ({exclude_list}))\n"
+            query += f"FILTER NOT EXISTS {{ ?{edge['source_id']}_type rdfs:isDefinedBy <http://purl.obolibrary.org/obo/bfo.owl> }}\n"
             query += f"  ?{edge['target_id']}_{idx} sesame:directType ?{edge['target_id']}_type .\n"
+            query += f"FILTER(?{edge['target_id']}_type NOT IN ({exclude_list}))\n"
+            query += f"FILTER NOT EXISTS {{ ?{edge['target_id']}_type rdfs:isDefinedBy <http://purl.obolibrary.org/obo/bfo.owl> }}\n"
             query += f"  ?{edge['source_id']}_{idx} ?{var} ?{edge['target_id']}_{idx} .\n"
             instance_vars.add(f"{edge['source_id']}_{idx}")
             instance_vars_to_types[f"{edge['source_id']}_{idx}"] = edge['source_id']
@@ -184,7 +189,8 @@ def parse_kgraph(response, slot_response, node_map, edge_map, kgraph):
         for row in response:
             fullkid = unprefix(kid)
             if row['kid']['value'] == fullkid:
-                nodes[kid]['name'] = row['label']['value']
+                if 'label' in row:
+                    nodes[kid]['name'] = row['label']['value']
                 node_type = pascal_to_snake(apply_prefix(row['blclass']['value']).split(':', 1)[1])
                 nodes[kid]['type'].add(node_type)
     kgraph['nodes'] = list(nodes.values())
