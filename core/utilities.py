@@ -7,7 +7,7 @@ import re
 
 import httpx
 
-BLAZEGRAPH_URL = 'https://stars-blazegraph.renci.org/cam/sparql'
+BLAZEGRAPH_URL = 'https://stars-app.renci.org/cam/sparql'
 BLAZEGRAPH_HEADERS = {
     'content-type': 'application/sparql-query',
     'Accept': 'application/json'

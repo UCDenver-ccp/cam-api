@@ -38,12 +38,12 @@ async def transpile_query(
     return Response(sparql_query, status_code=200, media_type='text/plain')
 
 
-example = example['message']['query_graph']
+subexample = example['message']['query_graph']
 
 
 @app.post('/subquery', response_model=List[QueryGraph], tags=['query'])
 async def generate_subqueries(
-        qgraph: QueryGraph = Body(..., example=example),
+        qgraph: QueryGraph = Body(..., example=subexample),
 ) -> List[QueryGraph]:
     """Generate sub-queries by removing one edge at a time."""
     return list(trim_qgraph(qgraph.dict()))
