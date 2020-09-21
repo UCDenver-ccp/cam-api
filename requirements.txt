@@ -1,3 +1,6 @@
 fastapi
 httpx
 uvicorn
+nose
+pytest
+reasoner-validator

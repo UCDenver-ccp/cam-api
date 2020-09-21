@@ -20,7 +20,7 @@ async def build_query(qgraph, strict=True, limit=-1):
     node_types = {}
     for node in qgraph["nodes"]:
 
-        if node["curie"]:
+        if node.get("curie", False):
             # enforce node curie
             node_types[node["id"]] = node["curie"]
         elif node["type"]:
@@ -40,13 +40,15 @@ async def build_query(qgraph, strict=True, limit=-1):
             PREFIX bl: <https://w3id.org/biolink/vocab/>
             SELECT DISTINCT ?predicate
             WHERE {{
-                bl:{edge['type']} <http://reasoner.renci.org/vocab/slot_mapping> ?predicate .
+                bl:{edge['type']} <http://translator/text_mining_provider/slot_mapping> ?predicate .
             }}
             """
             bindings = await run_query(predicate_query)
             predicates = " ".join(
                 [f"<{binding['predicate']['value']}>" for binding in bindings]
             )
+
+            # predicates = edge["type"]
             query += f"VALUES ?{var} {{ {predicates} }}\n"
 
         # enforce connectivity
@@ -85,6 +87,7 @@ async def build_query(qgraph, strict=True, limit=-1):
     ids = [f"?{var}" for var in instance_vars]
     ids += [f"?{node['id']}_type" for node in qgraph["nodes"]]
     ids += list({f"?{edge['id']}" for edge in qgraph["edges"]})
+    ids.sort()  # sorting to ensure reproducible order in unit tests
     var_string = " ".join(ids)
     prequel += f"\nSELECT DISTINCT {var_string} WHERE {{\n"
     return prequel + query
@@ -106,7 +109,7 @@ def get_details(kgraph):
     values = " ".join([f"<{unprefix(kid)}>" for qid, kid in node_map.items()])
     query += f"VALUES ?kid {{ {values} }}\n"
     query += "?kid rdfs:subClassOf ?blclass .\n"
-    query += "?blclass blml:is_a* bl:NamedThing .\n"
+    # query += "?blclass blml:is_a* bl:NamedThing .\n"
     query += "OPTIONAL { ?kid rdfs:label ?label . }"
     query += "}"
 
@@ -118,11 +121,13 @@ def get_details(kgraph):
         [f'( <{unprefix(kid)}> "{qid}" )' for qid, kid in edge_map2.items()]
     )
     slot_query += f"VALUES (?kid ?qid) {{ {values} }}\n"
-    slot_query += "?blslot <http://reasoner.renci.org/vocab/slot_mapping> ?kid .\n"
-    slot_query += """FILTER NOT EXISTS {
-        ?other <http://reasoner.renci.org/vocab/slot_mapping> ?kid .
-        ?other blml:is_a+/blml:mixins* ?blslot .
-    }"""
+    slot_query += (
+        "?blslot <http://translator/text_mining_provider/slot_mapping> ?kid .\n"
+    )
+    # slot_query += """FILTER NOT EXISTS {
+    #     ?other <http://translator/text_mining_provider/slot_mapping> ?kid .
+    #     ?other blml:is_a+/blml:mixins* ?blslot .
+    # }"""
     slot_query += "OPTIONAL { ?kid rdfs:label ?label . }\n"
     slot_query += "}"
 
@@ -182,18 +187,35 @@ async def parse_response(response, qgraph, strict=True):
                 src = row[f"{qedge['source_id']}_{idx}"]["value"]
                 obj = row[f"{qedge['target_id']}_{idx}"]["value"]
             pred = row[qedge["id"]]["value"]
-            query = get_CAM_query(src, pred, obj)
+            query = get_evidence_query(src, pred, obj)
             bindings = await run_query(query)
-            assert len(bindings) == 1
-            graph = (bindings[0].get("other", None) or bindings[0]["g"])["value"]
 
             result["edge_bindings"].append(
                 {
                     "qg_id": qedge["id"],
                     "kg_id": edge_id,
-                    "provenance": graph,
                 }
             )
+
+            # for each evidence add score, sentence, etc.
+            for idx, binding in enumerate(bindings):
+                result["edge_bindings"][0][f"publication_{idx}"] = binding[
+                    "publications"
+                ]["value"]
+                result["edge_bindings"][0][f"score_{idx}"] = binding["score"]["value"]
+                result["edge_bindings"][0][f"sentence_{idx}"] = binding["sentence"][
+                    "value"
+                ]
+                result["edge_bindings"][0][f"subject_spans_{idx}"] = binding[
+                    "subject_spans"
+                ]["value"]
+                result["edge_bindings"][0][f"object_spans_{idx}"] = binding[
+                    "object_spans"
+                ]["value"]
+                result["edge_bindings"][0][f"provided_by_{idx}"] = binding[
+                    "provided_by"
+                ]["value"]
+
             edge_idx += 1
         results.append(result)
 
@@ -214,6 +236,10 @@ def parse_kgraph(response, slot_response, node_map, edge_map, kgraph):
                     apply_prefix(row["blclass"]["value"]).split(":", 1)[1]
                 )
                 nodes[kid]["type"].add(node_type)
+        # reasoner validator seems to want a list instead of set for the node type
+        # sorted to ensure reproducibility for unit tests
+        nodes[kid]["type"] = list(nodes[kid]["type"])
+        nodes[kid]["type"].sort()
     kgraph["nodes"] = list(nodes.values())
 
     edges = kgraph["edges"]
@@ -228,36 +254,60 @@ def parse_kgraph(response, slot_response, node_map, edge_map, kgraph):
     return kgraph
 
 
-def get_CAM_query(src, pred, obj):
-    """Generate query to get asserted CAM including triple."""
+def get_evidence_query(src, pred, obj):
+    """Generate query to get text-mined evidence that asserts the edge."""
     query = ""
     for key, value in PREFIXES.items():
         query += f"PREFIX {key}: <{value}>\n"
     return (
-        query + "SELECT ?g ?other WHERE {\n"
-        "  GRAPH ?g {\n"
-        f"   <{src}> <{pred}> <{obj}>\n"
-        "  }\n"
-        "  OPTIONAL {\n"
-        "    ?g prov:wasDerivedFrom ?other .\n"
-        "  }\n"
+        query
+        + "select ?assoc ?publications ?score ?sentence ?subject_spans ?object_spans ?provided_by {\n"
+        f"  ?subj <http://www.openrdf.org/schema/sesame#directType> <{src}> .\n"
+        "  ?assoc <https://w3id.org/biolink/vocab/subject> ?subj .\n"
+        "  ?assoc <https://w3id.org/biolink/vocab/object> ?obj .\n"
+        f"  ?obj <http://www.openrdf.org/schema/sesame#directType> <{obj}> .\n"
+        f"  ?assoc <https://w3id.org/biolink/vocab/relation> <{pred}> .\n"
+        "  ?assoc <https://w3id.org/biolink/vocab/evidence> ?evidence .\n"
+        "  ?evidence <https://w3id.org/biolink/vocab/publications> ?publications .\n"
+        "  ?evidence <https://w3id.org/biolink/vocab/sentence> ?sentence .\n"
+        "  ?evidence <https://w3id.org/biolink/vocab/subject_spans> ?subject_spans .\n"
+        "  ?evidence <https://w3id.org/biolink/vocab/object_spans> ?object_spans .\n"
+        "  ?evidence <https://w3id.org/biolink/vocab/provided_by> ?provided_by .\n"
+        "  ?evidence <https://w3id.org/biolink/vocab/score> ?score .\n"
         "}"
     )
 
 
-def get_CAM_stuff_query(graph):
-    """Generate query to get CAM triples."""
-    query = ""
-    for key, value in PREFIXES.items():
-        query += f"PREFIX {key}: <{value}>\n"
-    return (
-        query + "SELECT ?s_type ?p ?o_type WHERE {\n"
-        f"  GRAPH <{graph}> {{\n"
-        "    ?s ?p ?o .\n"
-        "    ?s rdf:type owl:NamedIndividual .\n"
-        "    ?o rdf:type owl:NamedIndividual .\n"
-        "  }\n"
-        "  ?o sesame:directType ?o_type .\n"
-        "  ?s sesame:directType ?s_type .\n"
-        "}"
-    )
+# def get_CAM_query(src, pred, obj):
+#     """Generate query to get asserted CAM including triple."""
+#     query = ""
+#     for key, value in PREFIXES.items():
+#         query += f"PREFIX {key}: <{value}>\n"
+#     return (
+#         query + "SELECT ?g ?other WHERE {\n"
+#         "  GRAPH ?g {\n"
+#         f"   <{src}> <{pred}> <{obj}>\n"
+#         "  }\n"
+#         "  OPTIONAL {\n"
+#         "    ?g prov:wasDerivedFrom ?other .\n"
+#         "  }\n"
+#         "}"
+#     )
+
+
+# def get_CAM_stuff_query(graph):
+#     """Generate query to get CAM triples."""
+#     query = ""
+#     for key, value in PREFIXES.items():
+#         query += f"PREFIX {key}: <{value}>\n"
+#     return (
+#         query + "SELECT ?s_type ?p ?o_type WHERE {\n"
+#         f"  GRAPH <{graph}> {{\n"
+#         "    ?s ?p ?o .\n"
+#         "    ?s rdf:type owl:NamedIndividual .\n"
+#         "    ?o rdf:type owl:NamedIndividual .\n"
+#         "  }\n"
+#         "  ?o sesame:directType ?o_type .\n"
+#         "  ?s sesame:directType ?s_type .\n"
+#         "}"
+#     )

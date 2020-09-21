@@ -7,7 +7,8 @@ import re
 
 import httpx
 
-BLAZEGRAPH_URL = "https://stars-app.renci.org/cam/sparql"
+BLAZEGRAPH_URL = "http://localhost:9999/blazegraph/sparql"
+# BLAZEGRAPH_URL = "https://stars-app.renci.org/cam/sparql"
 BLAZEGRAPH_HEADERS = {
     "content-type": "application/sparql-query",
     "Accept": "application/json",
@@ -105,7 +106,6 @@ PREFIXES = {
     "wgs": "http://www.w3.org/2003/01/geo/wgs84_pos",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "go": "http://www.geneontology.org/formats/oboInOwl#",
     "blml": "https://w3id.org/biolink/biolinkml/meta/",
     "bl": "https://w3id.org/biolink/vocab/",

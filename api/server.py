@@ -82,57 +82,57 @@ async def answer_query(
         }
         return message
 
-    # add extra CAM stuff
-    graphs = set()
-    results_by_graph = defaultdict(list)
-    for result in message["results"]:
-        uris = set()
-        for eb in result["edge_bindings"]:
-            graphs.add(eb["provenance"])
-            uris.add(eb["provenance"])
-        for uri in uris:
-            results_by_graph[uri].append(result)
-        result["extra_nodes"] = dict()
-        result["extra_edges"] = dict()
-    for graph_uri in graphs:
-        query = get_CAM_stuff_query(graph_uri)
-        cam = await run_query(query)
+    # # add extra CAM stuff
+    # graphs = set()
+    # results_by_graph = defaultdict(list)
+    # for result in message["results"]:
+    #     uris = set()
+    #     for eb in result["edge_bindings"]:
+    #         graphs.add(eb["provenance"])
+    #         uris.add(eb["provenance"])
+    #     for uri in uris:
+    #         results_by_graph[uri].append(result)
+    #     result["extra_nodes"] = dict()
+    #     result["extra_edges"] = dict()
+    # for graph_uri in graphs:
+    #     query = get_CAM_stuff_query(graph_uri)
+    #     cam = await run_query(query)
 
-        for triple in cam:
-            source_id = apply_prefix(triple["s_type"]["value"])
-            message["knowledge_graph"]["nodes"][source_id] = {"id": source_id}
-            target_id = apply_prefix(triple["o_type"]["value"])
-            message["knowledge_graph"]["nodes"][target_id] = {"id": target_id}
-            edge_type = apply_prefix(triple["p"]["value"])
-            edge = {
-                "type": edge_type,
-                "source_id": source_id,
-                "target_id": target_id,
-            }
-            edge_id = hash_dict(edge)
-            message["knowledge_graph"]["edges"][edge_id] = {
-                "id": edge_id,
-                **edge,
-            }
-            for result in results_by_graph[graph_uri]:
-                if source_id not in (nb["kg_id"] for nb in result["node_bindings"]):
-                    result["extra_nodes"][f"{source_id}_{graph_uri}"] = {
-                        "kg_id": source_id,
-                    }
+    #     for triple in cam:
+    #         source_id = apply_prefix(triple["s_type"]["value"])
+    #         message["knowledge_graph"]["nodes"][source_id] = {"id": source_id}
+    #         target_id = apply_prefix(triple["o_type"]["value"])
+    #         message["knowledge_graph"]["nodes"][target_id] = {"id": target_id}
+    #         edge_type = apply_prefix(triple["p"]["value"])
+    #         edge = {
+    #             "type": edge_type,
+    #             "source_id": source_id,
+    #             "target_id": target_id,
+    #         }
+    #         edge_id = hash_dict(edge)
+    #         message["knowledge_graph"]["edges"][edge_id] = {
+    #             "id": edge_id,
+    #             **edge,
+    #         }
+    #         for result in results_by_graph[graph_uri]:
+    #             if source_id not in (nb["kg_id"] for nb in result["node_bindings"]):
+    #                 result["extra_nodes"][f"{source_id}_{graph_uri}"] = {
+    #                     "kg_id": source_id,
+    #                 }
 
-                if target_id not in (nb["kg_id"] for nb in result["node_bindings"]):
-                    result["extra_nodes"][f"{target_id}_{graph_uri}"] = {
-                        "kg_id": target_id,
-                    }
+    #             if target_id not in (nb["kg_id"] for nb in result["node_bindings"]):
+    #                 result["extra_nodes"][f"{target_id}_{graph_uri}"] = {
+    #                     "kg_id": target_id,
+    #                 }
 
-                if edge_id not in (eb["kg_id"] for eb in result["edge_bindings"]):
-                    result["extra_edges"][f"{edge_id}_{graph_uri}"] = {
-                        "kg_id": edge_id,
-                        "provenance": graph_uri,
-                    }
-    for result in message["results"]:
-        result["extra_edges"] = list(result["extra_edges"].values())
-        result["extra_nodes"] = list(result["extra_nodes"].values())
+    #             if edge_id not in (eb["kg_id"] for eb in result["edge_bindings"]):
+    #                 result["extra_edges"][f"{edge_id}_{graph_uri}"] = {
+    #                     "kg_id": edge_id,
+    #                     "provenance": graph_uri,
+    #                 }
+    # for result in message["results"]:
+    #     result["extra_edges"] = list(result["extra_edges"].values())
+    #     result["extra_nodes"] = list(result["extra_nodes"].values())
 
     # get knowledge graph
     detail_query, slot_query, node_map, edge_map = get_details(
