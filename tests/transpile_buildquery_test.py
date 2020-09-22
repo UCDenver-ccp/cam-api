@@ -134,7 +134,7 @@ def test_validate_query_graphs():
 
 
 class AsyncMock(MagicMock):
-    "helper class to test async. Borroewed from: https://medium.com/@AgariInc/strategies-for-testing-async-code-in-python-c52163f2deab"
+    "helper class to test async. Borrowed from: https://medium.com/@AgariInc/strategies-for-testing-async-code-in-python-c52163f2deab"
 
     async def __call__(self, *args, **kwargs):
         return super().__call__(*args, **kwargs)

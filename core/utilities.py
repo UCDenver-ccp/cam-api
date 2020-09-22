@@ -7,8 +7,9 @@ import re
 
 import httpx
 
-BLAZEGRAPH_URL = "http://localhost:9999/blazegraph/sparql"
-# BLAZEGRAPH_URL = "https://stars-app.renci.org/cam/sparql"
+# "backend" matches the Docker container name for the container with the Blazegraph instance
+# "assoc" is the namespace/repository name where the triples have loaded
+BLAZEGRAPH_URL = "http://backend:9999/blazegraph/namespace/assoc/sparql"
 BLAZEGRAPH_HEADERS = {
     "content-type": "application/sparql-query",
     "Accept": "application/json",

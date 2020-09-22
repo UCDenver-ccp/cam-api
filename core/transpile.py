@@ -180,41 +180,71 @@ async def parse_response(response, qgraph, strict=True):
                 **edge,
             }
 
-            if strict:
-                src = row[qedge["source_id"]]["value"]
-                obj = row[qedge["target_id"]]["value"]
-            else:
-                src = row[f"{qedge['source_id']}_{idx}"]["value"]
-                obj = row[f"{qedge['target_id']}_{idx}"]["value"]
+            # if strict:
+            #     src = row[qedge["source_id"]]["value"]
+            #     obj = row[qedge["target_id"]]["value"]
+            # else:
+            #     src = row[f"{qedge['source_id']}_{idx}"]["value"]
+            #     obj = row[f"{qedge['target_id']}_{idx}"]["value"]
             pred = row[qedge["id"]]["value"]
-            query = get_evidence_query(src, pred, obj)
+            query = get_evidence_query(source_id, pred, target_id)
+
             bindings = await run_query(query)
+
+            # for each evidence add score, sentence, etc.
+            provenance = []
+            for idx, binding in enumerate(bindings):
+
+                pmid = binding["publications"]["value"]
+                score = binding["score"]["value"]
+                sentence = binding["sentence"]["value"]
+                subject_spans = binding["subject_spans"]["value"]
+                object_spans = binding["object_spans"]["value"]
+                provided_by = binding["provided_by"]["value"]
+
+                prov = {
+                    "publication": pmid,
+                    "score": score,
+                    "sentence": sentence,
+                    "subject_spans": subject_spans,
+                    "object_spans": object_spans,
+                    "provided_by": provided_by,
+                }
+
+                provenance.append(prov)
 
             result["edge_bindings"].append(
                 {
                     "qg_id": qedge["id"],
                     "kg_id": edge_id,
+                    "provenance": str(provenance),
                 }
             )
 
-            # for each evidence add score, sentence, etc.
-            for idx, binding in enumerate(bindings):
-                result["edge_bindings"][0][f"publication_{idx}"] = binding[
-                    "publications"
-                ]["value"]
-                result["edge_bindings"][0][f"score_{idx}"] = binding["score"]["value"]
-                result["edge_bindings"][0][f"sentence_{idx}"] = binding["sentence"][
-                    "value"
-                ]
-                result["edge_bindings"][0][f"subject_spans_{idx}"] = binding[
-                    "subject_spans"
-                ]["value"]
-                result["edge_bindings"][0][f"object_spans_{idx}"] = binding[
-                    "object_spans"
-                ]["value"]
-                result["edge_bindings"][0][f"provided_by_{idx}"] = binding[
-                    "provided_by"
-                ]["value"]
+            # NOTE: assigning separate fields did not work. Always ended up with an empty 'provenance' variable -- which is defined in models.EdgeBinding
+            # # for each evidence add score, sentence, etc.
+            # for idx, binding in enumerate(bindings):
+            #     print("================APPENDING BINDING" + str(binding))
+            #     result["edge_bindings"][0][f"publication_{idx}"] = binding[
+            #         "publications"
+            #     ]["value"]
+            #     result["edge_bindings"][0][f"score_{idx}"] = binding["score"]["value"]
+            #     result["edge_bindings"][0][f"sentence_{idx}"] = binding["sentence"][
+            #         "value"
+            #     ]
+            #     result["edge_bindings"][0][f"subject_spans_{idx}"] = binding[
+            #         "subject_spans"
+            #     ]["value"]
+            #     result["edge_bindings"][0][f"object_spans_{idx}"] = binding[
+            #         "object_spans"
+            #     ]["value"]
+            #     result["edge_bindings"][0][f"provided_by_{idx}"] = binding[
+            #         "provided_by"
+            #     ]["value"]
+            #     print(
+            #         "=================APPENDED EDGE BINDINGS:\n"
+            #         + str(result["edge_bindings"])
+            #     )
 
             edge_idx += 1
         results.append(result)
@@ -254,7 +284,7 @@ def parse_kgraph(response, slot_response, node_map, edge_map, kgraph):
     return kgraph
 
 
-def get_evidence_query(src, pred, obj):
+def get_evidence_query(source_id, pred, target_id):
     """Generate query to get text-mined evidence that asserts the edge."""
     query = ""
     for key, value in PREFIXES.items():
@@ -262,10 +292,10 @@ def get_evidence_query(src, pred, obj):
     return (
         query
         + "select ?assoc ?publications ?score ?sentence ?subject_spans ?object_spans ?provided_by {\n"
-        f"  ?subj <http://www.openrdf.org/schema/sesame#directType> <{src}> .\n"
+        f"  ?subj <http://www.openrdf.org/schema/sesame#directType> {source_id} .\n"
         "  ?assoc <https://w3id.org/biolink/vocab/subject> ?subj .\n"
         "  ?assoc <https://w3id.org/biolink/vocab/object> ?obj .\n"
-        f"  ?obj <http://www.openrdf.org/schema/sesame#directType> <{obj}> .\n"
+        f"  ?obj <http://www.openrdf.org/schema/sesame#directType> {target_id} .\n"
         f"  ?assoc <https://w3id.org/biolink/vocab/relation> <{pred}> .\n"
         "  ?assoc <https://w3id.org/biolink/vocab/evidence> ?evidence .\n"
         "  ?evidence <https://w3id.org/biolink/vocab/publications> ?publications .\n"

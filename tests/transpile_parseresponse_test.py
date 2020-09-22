@@ -24,11 +24,17 @@ qgraph_fully_specified_entity_pair = {
 
 response = [
     {
-        "e0": {"value": "http://purl.obolibrary.org/obo/RO_0002212"},
-        "n0": {"value": "_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj"},
-        "n0_type": {"value": "http://purl.obolibrary.org/obo/CHEBI_3215"},
-        "n1": {"value": "_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj"},
-        "n1_type": {"value": "http://purl.obolibrary.org/obo/PR_0000317567"},
+        "e0": {"type": "uri", "value": "http://purl.obolibrary.org/obo/RO_0002212"},
+        "n0": {"type": "uri", "value": "_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj"},
+        "n0_type": {
+            "type": "uri",
+            "value": "http://purl.obolibrary.org/obo/CHEBI_3215",
+        },
+        "n1": {"type": "uri", "value": "_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj"},
+        "n1_type": {
+            "type": "uri",
+            "value": "http://purl.obolibrary.org/obo/PR_0000317567",
+        },
     }
 ]
 
@@ -54,7 +60,7 @@ class TestParseResponseFromFullySpecified(TestCase):
         mock_thing.return_value = [
             {
                 "publications": {"value": "PMID:29085514"},
-                "score": {"value": 0.99956816},
+                "score": {"value": "0.99956816"},
                 "sentence": {
                     "value": "The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells."
                 },
@@ -78,12 +84,18 @@ class TestParseResponseFromFullySpecified(TestCase):
                     {
                         "qg_id": "e0",
                         "kg_id": "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914",
-                        "publication_0": "PMID:29085514",
-                        "score_0": 0.99956816,
-                        "sentence_0": "The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells.",
-                        "subject_spans_0": "start: 31, end: 42",
-                        "object_spans_0": "start: 104, end: 110",
-                        "provided_by_0": "TMProvider",
+                        "provenance": str(
+                            [
+                                {
+                                    "publication": "PMID:29085514",
+                                    "score": "0.99956816",
+                                    "sentence": "The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells.",
+                                    "subject_spans": "start: 31, end: 42",
+                                    "object_spans": "start: 104, end: 110",
+                                    "provided_by": "TMProvider",
+                                }
+                            ]
+                        ),
                     }
                 ],
             }

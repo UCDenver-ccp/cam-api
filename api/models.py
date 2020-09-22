@@ -85,7 +85,7 @@ class EdgeBinding(BaseModel):
 
 
 class NodeBinding(BaseModel):
-    """Nod binding."""
+    """Node binding."""
 
     qg_id: str
     kg_id: Union[str, List[str]]
