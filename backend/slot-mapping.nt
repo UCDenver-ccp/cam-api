@@ -1,0 +1,6 @@
+<https://w3id.org/biolink/vocab/negatively_regulates_entity_to_entity> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002212> .
+<https://w3id.org/biolink/vocab/negatively_regulates> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002212> .
+<http://purl.obolibrary.org/obo/RO_0002212> <http://www.w3.org/2000/01/rdf-schema#label> "negatively regulates"@en .
+<https://w3id.org/biolink/vocab/positively_regulates_entity_to_entity> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002213> .
+<https://w3id.org/biolink/vocab/positively_regulates> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002213> .
+<http://purl.obolibrary.org/obo/RO_0002213> <http://www.w3.org/2000/01/rdf-schema#label> "positively regulates"@en .

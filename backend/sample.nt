@@ -1,0 +1,42 @@
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/ChemicalSubstance> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.obolibrary.org/obo/CHEBI_3215> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj> <http://www.openrdf.org/schema/sesame#directType> <http://purl.obolibrary.org/obo/CHEBI_3215> .
+<http://purl.obolibrary.org/obo/CHEBI_3215> <https://w3id.org/biolink/vocab/id> "CHEBI:3215"@en .
+<http://purl.obolibrary.org/obo/CHEBI_3215> <http://www.w3.org/2000/01/rdf-schema#label> "bupivacaine"@en .
+<http://purl.obolibrary.org/obo/CHEBI_3215> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/ChemicalSubstance> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/GeneProduct> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/GeneOrGeneProduct> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.obolibrary.org/obo/PR_0000317567> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.openrdf.org/schema/sesame#directType> <http://purl.obolibrary.org/obo/PR_0000317567> .
+<http://purl.obolibrary.org/obo/PR_0000317567> <https://w3id.org/biolink/vocab/id> "PR:0000317567"@en .
+<http://purl.obolibrary.org/obo/PR_0000317567> <http://www.w3.org/2000/01/rdf-schema#label> "leucine-rich repeat-containing protein 3B"@en .
+<http://purl.obolibrary.org/obo/PR_0000317567> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/GeneProduct> .
+<http://purl.obolibrary.org/obo/PR_0000317567> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/GeneOrGeneProduct> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj> <http://purl.obolibrary.org/obo/RO_0002212> <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/ChemicalToGeneAssociation> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/Association> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <https://w3id.org/biolink/vocab/subject> <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <https://w3id.org/biolink/vocab/object> <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <https://w3id.org/biolink/vocab/id> "IjbFtUdgNQk-HHlsBju-I_jpSnA"@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <https://w3id.org/biolink/vocab/relation> <http://purl.obolibrary.org/obo/RO_0002212> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <https://w3id.org/biolink/vocab/evidence> <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> . 
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/InformationContentEntity> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/TextMinedEvidence> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/id> "02T60dgTsntC9kC4rqtr5lIN8n0"@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/name> "Evidence: CHEBI:3215 -neg-reg-> PR:000031567"@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/publications> "PMID:29085514"@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/sentence> "The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells."@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/subject_spans> "start: 31, end: 42"@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/object_spans> "start: 104, end: 110"@en .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/provided_by> "TMProvider"@en . 
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_evidence_0> <https://w3id.org/biolink/vocab/score> "0.99956816"^^<http://www.w3.org/2001/XMLSchema#decimal> .
+<https://w3id.org/biolink/vocab/negatively_regulates_entity_to_entity> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002212> .
+<https://w3id.org/biolink/vocab/negatively_regulates> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002212> .
+<http://purl.obolibrary.org/obo/RO_0002212> <http://www.w3.org/2000/01/rdf-schema#label> "negatively regulates"@en .
+<https://w3id.org/biolink/vocab/positively_regulates_entity_to_entity> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002213> .
+<https://w3id.org/biolink/vocab/positively_regulates> <http://translator/text_mining_provider/slot_mapping> <http://purl.obolibrary.org/obo/RO_0002213> .
+<http://purl.obolibrary.org/obo/RO_0002213> <http://www.w3.org/2000/01/rdf-schema#label> "positively regulates"@en .
+
+
+
+
