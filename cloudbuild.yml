@@ -1,0 +1,32 @@
+steps:
+    
+    # Build and push image for the targeted text-mined association api
+    - id: 'build api'
+      name: 'gcr.io/cloud-builders/docker'
+      args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/trapi-assoc-api:${_TRAPI_ASSOC_API_VERSION}', '.' ]
+      timeout: 1500s
+      waitFor: ['-'] # start immediately
+    
+    - id: 'push api'
+      name: 'gcr.io/cloud-builders/docker'
+      args: ['push', 'gcr.io/$PROJECT_ID/trapi-assoc-api:${_TRAPI_ASSOC_API_VERSION}']
+      waitFor: ['build api']
+
+    # Build and push image for the targeted text-mined association backen
+    - id: 'build backend'
+      name: 'gcr.io/cloud-builders/docker'
+      args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/trapi-assoc-backend:${_TRAPI_ASSOC_BACKEND_VERSION}', '-f', 'backend/Dockerfile', './backend' ]
+      timeout: 1500s
+      waitFor: ['-'] # start immediately
+    
+    - id: 'push backend'
+      name: 'gcr.io/cloud-builders/docker'
+      args: ['push', 'gcr.io/$PROJECT_ID/trapi-assoc-backend:${_TRAPI_ASSOC_BACKEND_VERSION}']
+      waitFor: ['build backend']  
+
+    substitutions:  
+    _TRAPI_ASSOC_API_VERSION: 0.1.0
+    _TRAPI_ASSOC_BACKEND_VERSION: 0.1.0
+
+
+timeout: 3000s
