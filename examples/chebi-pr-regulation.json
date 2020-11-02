@@ -3,7 +3,7 @@
     "query_graph": {
       "nodes": [
         { "id": "n0", "type": "chemical_substance", "curie": "CHEBI:3215" },
-        { "id": "n1", "type": "gene_product", "curie": "PR:0000317567" }
+        { "id": "n1", "type": "gene_product", "curie": "PR:000031567" }
       ],
       "edges": [
         {

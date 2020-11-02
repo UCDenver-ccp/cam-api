@@ -6,12 +6,12 @@
 <http://purl.obolibrary.org/obo/CHEBI_3215> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/ChemicalSubstance> .
 <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/GeneProduct> .
 <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/GeneOrGeneProduct> .
-<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.obolibrary.org/obo/PR_0000317567> .
-<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.openrdf.org/schema/sesame#directType> <http://purl.obolibrary.org/obo/PR_0000317567> .
-<http://purl.obolibrary.org/obo/PR_0000317567> <https://w3id.org/biolink/vocab/id> "PR:0000317567"@en .
-<http://purl.obolibrary.org/obo/PR_0000317567> <http://www.w3.org/2000/01/rdf-schema#label> "leucine-rich repeat-containing protein 3B"@en .
-<http://purl.obolibrary.org/obo/PR_0000317567> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/GeneProduct> .
-<http://purl.obolibrary.org/obo/PR_0000317567> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/GeneOrGeneProduct> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.obolibrary.org/obo/PR_000031567> .
+<_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> <http://www.openrdf.org/schema/sesame#directType> <http://purl.obolibrary.org/obo/PR_000031567> .
+<http://purl.obolibrary.org/obo/PR_000031567> <https://w3id.org/biolink/vocab/id> "PR:0000317567"@en .
+<http://purl.obolibrary.org/obo/PR_000031567> <http://www.w3.org/2000/01/rdf-schema#label> "leucine-rich repeat-containing protein 3B"@en .
+<http://purl.obolibrary.org/obo/PR_000031567> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/GeneProduct> .
+<http://purl.obolibrary.org/obo/PR_000031567> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://w3id.org/biolink/vocab/GeneOrGeneProduct> .
 <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_subj> <http://purl.obolibrary.org/obo/RO_0002212> <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj> .
 <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/ChemicalToGeneAssociation> .
 <_:IjbFtUdgNQk-HHlsBju-I_jpSnA_assoc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/biolink/vocab/Association> .

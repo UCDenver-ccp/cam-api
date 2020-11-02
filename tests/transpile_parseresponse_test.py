@@ -33,7 +33,7 @@ response = [
         "n1": {"type": "uri", "value": "_:IjbFtUdgNQk-HHlsBju-I_jpSnA_obj"},
         "n1_type": {
             "type": "uri",
-            "value": "http://purl.obolibrary.org/obo/PR_0000317567",
+            "value": "http://purl.obolibrary.org/obo/PR_000031567",
         },
     }
 ]
@@ -78,12 +78,12 @@ class TestParseResponseFromFullySpecified(TestCase):
             {
                 "node_bindings": [
                     {"qg_id": "n0", "kg_id": "CHEBI:3215"},
-                    {"qg_id": "n1", "kg_id": "PR:0000317567"},
+                    {"qg_id": "n1", "kg_id": "PR:000031567"},
                 ],
                 "edge_bindings": [
                     {
                         "qg_id": "e0",
-                        "kg_id": "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914",
+                        "kg_id": "c1065ac6f333c149fdfa1288aac06169b844e7b6af43536877e103e2a5089d37",
                         "provenance": str(
                             [
                                 {
@@ -104,14 +104,14 @@ class TestParseResponseFromFullySpecified(TestCase):
         expected_kgraph = {
             "nodes": {
                 "CHEBI:3215": {"id": "CHEBI:3215"},
-                "PR:0000317567": {"id": "PR:0000317567"},
+                "PR:000031567": {"id": "PR:000031567"},
             },
             "edges": {
-                "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914": {
-                    "id": "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914",
+                "c1065ac6f333c149fdfa1288aac06169b844e7b6af43536877e103e2a5089d37": {
+                    "id": "c1065ac6f333c149fdfa1288aac06169b844e7b6af43536877e103e2a5089d37",
                     "type": "RO:0002212",
                     "source_id": "CHEBI:3215",
-                    "target_id": "PR:0000317567",
+                    "target_id": "PR:000031567",
                 }
             },
         }
@@ -121,4 +121,71 @@ class TestParseResponseFromFullySpecified(TestCase):
         print("EXPECTED KGRAPH:" + str(expected_kgraph))
 
         eq_(expected_results, results, "Results not as expected")
-        eq_(expected_kgraph, kgraph, "Results not as expected")
+        eq_(expected_kgraph, kgraph, "KGraph not as expected")
+
+        r = [
+            {
+                "node_bindings": [
+                    {"qg_id": "n0", "kg_id": "CHEBI:3215"},
+                    {"qg_id": "n1", "kg_id": "PR:000031567"},
+                ],
+                "edge_bindings": [
+                    {
+                        "qg_id": "e0",
+                        "kg_id": "c1065ac6f333c149fdfa1288aac06169b844e7b6af43536877e103e2a5089d37",
+                        "provenance": "[{'publication': 'PMID:29085514', 'score': '0.99956816', 'sentence': 'The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells.', 'subject_spans': 'start: 31, end: 42', 'object_spans': 'start: 104, end: 110', 'provided_by': 'TMProvider'}]",
+                    }
+                ],
+            }
+        ]
+
+        er = [
+            {
+                "node_bindings": [
+                    {"qg_id": "n0", "kg_id": "CHEBI:3215"},
+                    {"qg_id": "n1", "kg_id": "PR:000031567"},
+                ],
+                "edge_bindings": [
+                    {
+                        "qg_id": "e0",
+                        "kg_id": "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914",
+                        "provenance": "[{'publication': 'PMID:29085514', 'score': '0.99956816', 'sentence': 'The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells.', 'subject_spans': 'start: 31, end: 42', 'object_spans': 'start: 104, end: 110', 'provided_by': 'TMProvider'}]",
+                    }
+                ],
+            }
+        ]
+
+        a = [
+            {
+                "e0": {
+                    "type": "uri",
+                    "value": "http://purl.obolibrary.org/obo/RO_0002212",
+                },
+                "n0": {"type": "uri", "value": "_:otAO-WU43S2QkcvGEEgZMz3XXdU_subj"},
+                "n0_type": {
+                    "type": "uri",
+                    "value": "http://purl.obolibrary.org/obo/CHEBI_17234",
+                },
+                "n1": {"type": "uri", "value": "_:otAO-WU43S2QkcvGEEgZMz3XXdU_obj"},
+                "n1_type": {
+                    "type": "uri",
+                    "value": "http://purl.obolibrary.org/obo/PR_000005061",
+                },
+            },
+            {
+                "e0": {
+                    "type": "uri",
+                    "value": "http://purl.obolibrary.org/obo/RO_0002212",
+                },
+                "n0": {"type": "uri", "value": "_:r8jsWA5EfS9R3XppQfzp6v1asr8_subj"},
+                "n0_type": {
+                    "type": "uri",
+                    "value": "http://purl.obolibrary.org/obo/CHEBI_17234",
+                },
+                "n1": {"type": "uri", "value": "_:r8jsWA5EfS9R3XppQfzp6v1asr8_obj"},
+                "n1_type": {
+                    "type": "uri",
+                    "value": "http://purl.obolibrary.org/obo/PR_000005061",
+                },
+            },
+        ]

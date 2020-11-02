@@ -9,14 +9,14 @@ from reasoner_validator import validate_Message, ValidationError
 kgraph = {
     "nodes": {
         "CHEBI:3215": {"id": "CHEBI:3215"},
-        "PR:0000317567": {"id": "PR:0000317567"},
+        "PR:000031567": {"id": "PR:000031567"},
     },
     "edges": {
         "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914": {
             "id": "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914",
             "type": "RO:0002212",
             "source_id": "CHEBI:3215",
-            "target_id": "PR:0000317567",
+            "target_id": "PR:000031567",
         }
     },
 }
@@ -29,12 +29,12 @@ detail_query_response = [
         "label": {"value": "bupivacaine"},
     },
     {
-        "kid": {"value": "http://purl.obolibrary.org/obo/PR_0000317567"},
+        "kid": {"value": "http://purl.obolibrary.org/obo/PR_000031567"},
         "blclass": {"value": "https://w3id.org/biolink/vocab/GeneProduct"},
         "label": {"value": "leucine-rich repeat-containing protein 3B"},
     },
     {
-        "kid": {"value": "http://purl.obolibrary.org/obo/PR_0000317567"},
+        "kid": {"value": "http://purl.obolibrary.org/obo/PR_000031567"},
         "blclass": {"value": "https://w3id.org/biolink/vocab/GeneOrGeneProduct"},
         "label": {"value": "leucine-rich repeat-containing protein 3B"},
     },
@@ -50,7 +50,7 @@ slot_query_response = [
     }
 ]
 
-node_map = {"n0000": "CHEBI:3215", "n0001": "PR:0000317567"}
+node_map = {"n0000": "CHEBI:3215", "n0001": "PR:000031567"}
 edge_map = {
     "e0000": ["7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914"]
 }
@@ -60,7 +60,7 @@ expected_kgraph = {
     "nodes": [
         {"id": "CHEBI:3215", "type": ["chemical_substance"], "name": "bupivacaine"},
         {
-            "id": "PR:0000317567",
+            "id": "PR:000031567",
             "type": ["gene_or_gene_product", "gene_product"],
             "name": "leucine-rich repeat-containing protein 3B",
         },
@@ -70,7 +70,7 @@ expected_kgraph = {
             "id": "7d682dcbe995d90c08b24f382cea523dc4f9e82208a42d98180b911a34102914",
             "type": "negatively_regulates_entity_to_entity",
             "source_id": "CHEBI:3215",
-            "target_id": "PR:0000317567",
+            "target_id": "PR:000031567",
         }
     ],
 }
@@ -110,7 +110,7 @@ results = [
     {
         "node_bindings": [
             {"qg_id": "n0", "kg_id": "CHEBI:3215"},
-            {"qg_id": "n1", "kg_id": "PR:0000317567"},
+            {"qg_id": "n1", "kg_id": "PR:000031567"},
         ],
         "edge_bindings": [
             {
