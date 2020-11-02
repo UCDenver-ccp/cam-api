@@ -17,13 +17,18 @@ RUN mvn package -f /pom-blazegraph-loader.xml
 
 RUN mkdir /biolink-data
 WORKDIR /biolink-data
-RUN wget https://biolink.github.io/biolink-model/biolink-model.owl
+#RUN wget https://biolink.github.io/biolink-model/biolink-model.owl
+RUN wget https://storage.googleapis.com/translator-tm-provider-knowledge-graphs/text-mined/current/text-mined.trapi-backend.nt.gz
 COPY sample.nt /biolink-data
+COPY slot-mapping.nt /biolink-data
 
 # load the biolink-model.owl file
 # NOTE: the format of biolink-model.owl is not recognized by the sesame parsers
 # RUN /run-loader.sh -z /home/developer/blazegraph/conf/log4j.properties -g file://biolink -f rdfxml -r assoc -p /home/developer/blazegraph/conf/RWStore.properties -m mvn -l /biolink-data/biolink-model.owl
-RUN /run-loader.sh -z /home/developer/blazegraph/conf/log4j.properties -g file://biolink -f ntriples -r assoc -p /home/developer/blazegraph/conf/RWStore.properties -m mvn -l /biolink-data/sample.nt
+# RUN /run-loader.sh -z /home/developer/blazegraph/conf/log4j.properties -g file://biolink -f ntriples -r assoc -p /home/developer/blazegraph/conf/RWStore.properties -m mvn -l /biolink-data/sample.nt
+
+RUN /run-loader.sh -z /home/developer/blazegraph/conf/log4j.properties -g file://biolink -f ntriples -r assoc -p /home/developer/blazegraph/conf/RWStore.properties -m mvn -l /biolink-data/slot-mapping.nt
+RUN /run-loader.sh -z /home/developer/blazegraph/conf/log4j.properties -g file://biolink -f ntriples -r assoc -p /home/developer/blazegraph/conf/RWStore.properties -m mvn -l /biolink-data/text-mined.trapi-backend.nt.gz
 
 RUN chown -R developer:developer /blazegraph-data
 USER developer
