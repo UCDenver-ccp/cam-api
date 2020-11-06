@@ -3,7 +3,7 @@ services:
   api:
     build: .
     ports:
-      - "6434:6434"
+      - "80:6434"
   backend:
     build: ./backend
     ports:
