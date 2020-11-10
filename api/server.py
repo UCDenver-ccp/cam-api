@@ -1,4 +1,4 @@
-"""REST portal for CAM-KP RDF database."""
+"""REST portal for the Text Mining Provider Biolink Association KG."""
 from collections import defaultdict
 import json
 import logging
@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
 app = FastAPI(
-    title="Text Mining Provider -- Targeted text-mined association API",
+    title="Text Mining Provider -- Text-mined Biolink association API",
     description="""This REST portal serves Biolink associations that have been mined from the scientific literature. <br> 
                    Current content include the following associations: 
                    <ul>
@@ -39,7 +39,7 @@ app = FastAPI(
                             <li> <a href="https://biolink.github.io/biolink-model/docs/positively_regulates_entity_to_entity.html">biolink:positively_regulates_entity_to_entity</a>
                             <li> <a href="https://biolink.github.io/biolink-model/docs/negatively_regulates_entity_to_entity.html">biolink:negatively_regulates_entity_to_entity</a>
                         </ul>
-                        <li> Example:
+                        <li> Example input:
                         <pre>{
   &nbsp;&nbsp;"message": {
     &nbsp;&nbsp;&nbsp;&nbsp;"query_graph": {
@@ -66,9 +66,23 @@ app = FastAPI(
     &nbsp;&nbsp;&nbsp;&nbsp;}
   &nbsp;&nbsp;}
 }
-                        </pre>
-                    </ul>
-                   """,
+</pre>
+</ul>
+<h3>Provenance</h3>
+  <p>Provenance for each edge is included as part of the <i>edge_bindings</i> in the <i>results</i> payload. The provenance includes the publication identifier, the sentence from which the association was mined, character offsets for the subject and object, and a score provided by the classifier that identified the association. An example is shown below:</p>
+    <pre>
+    [
+    &nbsp;&nbsp;{
+    &nbsp;&nbsp;&nbsp;&nbsp;'publication': 'PMID:29085514', 
+    &nbsp;&nbsp;&nbsp;&nbsp;'score': '0.99956816', 
+    &nbsp;&nbsp;&nbsp;&nbsp;'sentence': 'The administration of 50 ?g/ml bupivacaine promoted maximum breast cancer cell invasion, and suppressed LRRC3B mRNA expression in cells.', 
+    &nbsp;&nbsp;&nbsp;&nbsp;'subject_spans': 'start: 31, end: 42', 
+    &nbsp;&nbsp;&nbsp;&nbsp;'object_spans': 'start: 104, end: 110', 
+    &nbsp;&nbsp;&nbsp;&nbsp;'provided_by': 'TMProvider'
+    &nbsp;&nbsp;}
+    ]
+    </pre>
+""",
     version="1.0.0",
 )
 
@@ -106,7 +120,7 @@ async def answer_query(
     strict: bool = True,
     limit: int = -1,
 ) -> Message:
-    """Answer biomedical question."""
+    """Query for text-mined Biolink associations."""
     message = query.message.dict()
     sparql_query = await build_query(message["query_graph"], strict=strict, limit=limit)
     headers = {"content-type": "application/sparql-query", "Accept": "application/json"}
