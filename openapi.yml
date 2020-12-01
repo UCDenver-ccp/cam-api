@@ -17,7 +17,7 @@ servers:
 paths:
   /query:
     post:
-      summary: Submit a TRAPI question graph and retrieve matching solutions. This REST portal serves <b>Biolink</b> associations that have been mined from the scientific literature.
+      summary: 'Submit a TRAPI question graph and retrieve matching solutions. This REST portal serves Biolink associations that have been mined from the scientific literature. For details on the KG content, please visit: http://35.232.64.189/docs'
       operationId: postQuery
       requestBody:
         content:
