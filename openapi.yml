@@ -1,0 +1,181 @@
+openapi: 3.0.1
+info:
+  title: Text-mined Biolink Association TRAPI
+  version: '0.1'
+  description: TRAPI interface for the Text Mining Provider text-mined Biolink association KG
+  termsOfService: https://opensource.org/licenses/MIT
+  contact:
+    name: Bill Baumgartner
+    email: william.baumgartner@cuanschutz.edu
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+tags:
+- name: translator
+servers:
+- url: http://35.232.64.189/docs
+paths:
+  /query:
+    post:
+      summary: Submit a TRAPI question graph and retrieve matching solutions
+      operationId: postQuery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TRAPIQueryRequestBody'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        default:
+          description: ''
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    BiolinkEntity:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+    BiolinkRelation:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+    TRAPIQueryRequestBody:
+      required:
+      - message
+      type: object
+      properties:
+        message:
+          $ref: '#/components/schemas/Message'
+    Message:
+      type: object
+      properties:
+        query_graph:
+          $ref: '#/components/schemas/QueryGraph'
+        knowledge_graph:
+          $ref: '#/components/schemas/KnowledgeGraph'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Result'
+    QueryGraph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/QNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/QEdge'
+    QNode:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        curie:
+          type: string
+    QEdge:
+      required:
+      - id
+      - source_id
+      - target_id
+      type: object
+      properties:
+        id:
+          type: string
+        source_id:
+          type: string
+        target_id:
+          type: string
+        type:
+          type: string
+    KnowledgeGraph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Node'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Edge'
+    Node:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: array
+          items:
+            $ref: '#/components/schemas/BiolinkEntity'
+    Edge:
+      required:
+      - id
+      - source_id
+      - target_id
+      type: object
+      properties:
+        id:
+          type: string
+        source_id:
+          type: string
+        target_id:
+          type: string
+        type:
+          $ref: '#/components/schemas/BiolinkRelation'
+    Result:
+      type: object
+      properties:
+        node_bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeBinding'
+        edge_bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeBinding'
+    NodeBinding:
+      required:
+      - kg_id
+      type: object
+      properties:
+        qg_id:
+          type: string
+        kg_id:
+          type: string
+    EdgeBinding:
+      required:
+      - kg_id
+      type: object
+      properties:
+        qg_id:
+          type: string
+        kg_id:
+          type: string
+        provenance:
+          type: string
