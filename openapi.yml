@@ -13,7 +13,7 @@ info:
 tags:
 - name: translator
 servers:
-- url: http://35.232.64.189/docs#
+- url: http://35.232.64.189
 paths:
   /query:
     post:
